@@ -1,1 +1,2 @@
 from .userSerializer import CustomUserSerializer
+from .companySerializer import CompanySerializer
