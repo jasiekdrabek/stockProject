@@ -4,7 +4,7 @@ from stockApp.models import Company
 class CompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = Company
-        fields = ('name')
+        fields = '__all__'
 
         def create(self, validated_data):
             company = Company(

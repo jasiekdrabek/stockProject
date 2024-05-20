@@ -7,14 +7,14 @@ from rest_framework import status
 from stockApp.serializers import CompanySerializer
 
 @api_view(['GET'])
-@permission_classes(IsAuthenticated)
+@permission_classes([IsAuthenticated])
 def companies(request):
     companies = Company.objects.all()
     serializer = CompanySerializer(companies, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
-@permission_classes(IsAuthenticated)
+@permission_classes([IsAuthenticated])
 def createCompany(request):
     serializer = CompanySerializer(data=request.data)
     if serializer.is_valid():
