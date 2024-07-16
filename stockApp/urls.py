@@ -7,4 +7,10 @@ urlpatterns = [
     path('api/addCompany', views.createCompany, name='addCompany'),
     path('api/companies', views.companies, name='companies'),
     path('api/addBuyOffer', views.addBuyOffer, name='addBuyOffer'),
+    path('api/addSellOffer',views.addSellOffer, name='addSellOffer'),
+    path('api/user/buyOffers', views.buyOffers, name='buyOffers'),
+    path('api/user/sellOffers',views.sellOffers, name='sellOffers'),
+    path('api/deleteBuyOffer/<int:pk>', views.deleteBuyOffer, name='deleteBuyOffer'),
+    path('api/deleteSellOffer/<int:pk>', views.deleteSellOffer, name='deleteSellOffer'),
+    path('api/user/addMoney', views.addMoney, name='addMoney'),
 ]
