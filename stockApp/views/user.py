@@ -8,8 +8,6 @@ from rest_framework import status
 @permission_classes([IsAuthenticated])
 def addMoney(request):
     user = request.user
-    print(user)
-    print(request.data)
     serializer = UserUpdateSerializer(user, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()

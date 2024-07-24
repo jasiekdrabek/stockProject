@@ -10,21 +10,19 @@ logger = logging.getLogger(__name__)
 def execute_transactions():
     now = timezone.now()
     try:
-        buy_offers = BuyOffer.objects.filter(dateLimit__gt=now, actual=True).order_by('-maxPrice')
-        sell_offers = SellOffer.objects.filter(dateLimit__gt=now, actual=True).order_by('minPrice')
-
+        buy_offers = BuyOffer.objects.filter(actual=True).order_by('-maxPrice')
+        sell_offers = SellOffer.objects.filter(actual=True).order_by('minPrice')
         for buy_offer in buy_offers:
             for sell_offer in sell_offers:
+                buyer = buy_offer.user
+                seller = sell_offer.user
                 if (buy_offer.company == sell_offer.company and
                     buy_offer.amount > 0 and 
                     sell_offer.amount > 0 and 
-                    buy_offer.maxPrice >= sell_offer.minPrice):
+                    buy_offer.maxPrice >= sell_offer.minPrice and
+                    seller != buyer):
                     amount_to_trade = min(buy_offer.amount, sell_offer.amount)
                     total_price = amount_to_trade * buy_offer.maxPrice
-
-                    buyer = buy_offer.user
-                    seller = sell_offer.user
-
                     if buyer.money >= total_price:
                         buy_offer.amount -= amount_to_trade
                         sell_offer.amount -= amount_to_trade
@@ -33,7 +31,6 @@ def execute_transactions():
                             buy_offer.actual = False
                         if sell_offer.amount == 0:
                             sell_offer.actual = False
-
                         buy_offer.save()
                         sell_offer.save()
 
@@ -47,8 +44,7 @@ def execute_transactions():
                             sellOffer=sell_offer,
                             amount=amount_to_trade,
                             price=buy_offer.maxPrice,
-                            total_price=total_price,
-                            transactionDate=timezone.now()
+                            total_price=total_price
                         )
                     else:
                         continue
