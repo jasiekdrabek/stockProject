@@ -18,9 +18,24 @@ app.autodiscover_tasks()
 def debug_task(self):
     print(f'Request: {self.request!r}')
 
+'''
 app.conf.beat_schedule = {
     'execute-transactions-every-minute': {
         'task': 'stockApp.tasks.execute_transactions',
         'schedule': crontab(minute='*/1'),  # co minutę
     },
 }
+'''
+
+app.conf.beat_schedule = {
+    'schedule_transactions': {
+        'task': 'stockApp.tasks.schedule_transactions',
+        'schedule': 30.0,  # co 30 s
+    }
+}
+'''
+    'update_stock_rates': {
+        'task': 'stockApp.tasks.update_stock_rates',
+        'schedule': 10.0,  # co 10 sekund
+    },
+'''
