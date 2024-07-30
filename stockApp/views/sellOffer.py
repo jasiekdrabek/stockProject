@@ -9,12 +9,11 @@ from stockApp.models import SellOffer
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def addSellOffer(request):
-    data = request.data.copy()  # Kopiowanie danych z requestu
-    serializer = SellOfferSerializer(data=data)  # Przekazywanie danych do serializera
+    serializer = SellOfferSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
-        serializer.save(user=request.user)  # Przekazanie użytkownika do metody save serializera
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  # Zwracanie błędów walidacji
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
