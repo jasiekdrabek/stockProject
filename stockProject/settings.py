@@ -87,7 +87,9 @@ DATABASES = {
         'NAME': 'stock',
         'USER': 'postgres',
         'PASSWORD': 'postgres',
-        'HOST': 'localhost'
+        'HOST': 'localhost',
+        #'HOST': 'db',  # Nazwa serwisu z pliku docker-compose.yml
+        #'PORT': '5432',
     }
 }
 
