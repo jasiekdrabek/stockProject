@@ -5,3 +5,4 @@ from .sellOfferSerializer import SellOfferSerializer
 from .updateUserSerializer import UserUpdateSerializer
 from .stockRateSerializer import StockRateSerializer
 from .stockSerializer import StockSerializer
+from .userInfoSerializer import CustomUserInfoSerializer

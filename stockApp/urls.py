@@ -13,5 +13,6 @@ urlpatterns = [
     path('api/deleteBuyOffer/<int:pk>', views.deleteBuyOffer, name='deleteBuyOffer'),
     path('api/deleteSellOffer/<int:pk>', views.deleteSellOffer, name='deleteSellOffer'),
     path('api/user/addMoney', views.addMoney, name='addMoney'),
-    path('api/user/stocks', views.getUserStocks, name='getUserStocks')
+    path('api/user/stocks', views.getUserStocks, name='getUserStocks'),
+    path('api/user', views.getUserInfo, name='getUserInfo'),
 ]
