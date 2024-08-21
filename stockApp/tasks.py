@@ -1,5 +1,6 @@
 
 import datetime
+import math
 from celery import shared_task, group
 from .models import BuyOffer, SellOffer, BalanceUpdate,Transaction, Company, Stock, StockRate
 from django.utils import timezone
@@ -90,7 +91,7 @@ def execute_transactions(company_ids):
 def schedule_transactions():
     companies = Company.objects.all()
     num_companies = companies.count()
-    group_size = 1 + num_companies // 4  # Assuming you want 4 groups, adjust as needed
+    group_size = 1 + num_companies // math.ceil(math.sqrt(num_companies))  # Assuming you want 4 groups, adjust as needed
 
     company_groups = [companies[i:i + group_size] for i in range(0, num_companies, group_size)]
 
@@ -156,11 +157,23 @@ def expire_offers():
     # Znajdowanie i aktualizowanie przeterminowanych ofert kupna
     expired_buy_offers = BuyOffer.objects.filter(actual=True, dateLimit__lt=now)
     for offer in expired_buy_offers:
+        buyer = offer.user
+        buyer_money_after_transactions_change = offer.amount * offer.maxPrice
+        BalanceUpdate.objects.create(
+                                    user=buyer,
+                                    change_amount=buyer_money_after_transactions_change,
+                                    change_type='moneyAfterTransactions'
+                                )
         offer.actual = False
         offer.save()
+        buyer.save()
 
     # Znajdowanie i aktualizowanie przeterminowanych ofert sprzedaży
     expired_sell_offers = SellOffer.objects.filter(actual=True, dateLimit__lt=now)
     for offer in expired_sell_offers:
+        seller = offer.user
+        stock = Stock.objects.get(user=seller, company=offer.company)
+        stock.amount += offer.amount
         offer.actual = False
         offer.save()
+        stock.save()
