@@ -1,0 +1,61 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: stock
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "6543:5432"
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    command: gunicorn --bind 0.0.0.0:8080 stockProject.wsgi:application
+    volumes:
+      - .:/app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+      - redis
+
+  celery_worker:
+    build: .
+    command: celery -A stockProject worker -l info -P gevent
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+
+  celery_beat:
+    build: .
+    command: celery -A stockProject beat --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+  
+  locust:
+    build: .
+    command: locust -f loadTestingApp/locustfile.py --host=http://192.168.1.106:8080
+    volumes:
+      - .:/code
+    ports:
+      - "8089:8089"
+    depends_on:
+      - web
+      - db
+
+volumes:
+  postgres_data:
