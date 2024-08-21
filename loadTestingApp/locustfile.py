@@ -17,7 +17,6 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'stockProject.settings')
 django.setup()
 # Inicjalizujemy generator danych
 fake = faker.Faker()
-token = ''
 
 def generate_random_data():
     username = fake.user_name()
@@ -45,22 +44,31 @@ def generate_valid_password(username):
         except ValidationError:
             continue
 
-class WebsiteUser(HttpUser):
+class WebsiteReadOnlyUser(HttpUser):
+    weight = 1
     wait_time = between(0.5, 1)
+    token = ''
 
     @task(3)
     def wait(self):
         pass
+    
     @task
-    def newCompany(self):
-        print(token)
-        company_name = fake.company()
-        self.client.post("/api/addCompany",headers={"authorization": "Token " + token}, json={"name":company_name})
-
+    def getSellOffers(self):
+        self.client.get("/api/user/sellOffers", headers={"authorization": "Token " + self.token})
+        
+    @task
+    def getBuyOffers(self):
+        self.client.get("/api/user/buyOffers", headers={"authorization": "Token " + self.token})
+        
+    @task
+    def getStocks(self):
+        self.client.get("/api/user/stocks", headers={"authorization": "Token " + self.token})
+        
     @task
     def getCompanies(self):
-        print(token)
-        self.client.get("/api/companies",headers={"authorization": "Token " + token})
+        print(self.token)
+        self.client.get("/api/companies",headers={"authorization": "Token " + self.token})
 
     def on_start(self):
         login = generate_random_data()
@@ -71,7 +79,79 @@ class WebsiteUser(HttpUser):
             'password': login['password']
         }
         response = self.client.post("/api/signIn",json=data)
-        global token
-        token = response.json()['token']
-        print(token)
+        self.token = response.json()['token']
+        company_name = fake.company()
+        self.client.post("/api/addCompany",headers={"authorization": "Token " + self.token}, json={"name":company_name})
+        
+class WebsiteActiveUser(HttpUser):
+    weight = 2
+    wait_time = between(0.5, 1)
+    token = ''
+    
+    def on_start(self):
+        login = generate_random_data()
+        self.client.post("/api/signUp", json=login)
+        time.sleep(1.0)
+        data = {
+            'username': login['username'],
+            'password': login['password']
+        }
+        response = self.client.post("/api/signIn",json=data)
+        self.token = response.json()['token']
+        company_name = fake.company()
+        self.client.post("/api/addCompany",headers={"authorization": "Token " + self.token}, json={"name":company_name})
 
+    @task
+    def wait(self):
+        pass
+    
+    @task
+    def addSellOffer(self):
+        # Sprawdzenie, w jakich firmach użytkownik ma akcje
+        response = self.client.get("/api/user/stocks", headers={"authorization": "Token " + self.token})
+        user_stocks = response.json()
+        if user_stocks:
+            # Losowanie firmy, z której sprzedamy akcje
+            selected_stock = random.choice(user_stocks)
+            company_id = selected_stock['company']
+            available_amount = selected_stock['amount']
+            if available_amount == 0:
+                return
+            # Losowanie liczby akcji do sprzedaży (minimum 1, maksimum dostępne akcje)
+            amount_to_sell = random.randint(1, min(available_amount,10))
+
+            # Dodanie oferty sprzedaży
+            sell_offer_data = {
+                "company": company_id,
+                "startAmount": amount_to_sell,
+                "amount": amount_to_sell,
+            }
+
+            self.client.post("/api/addSellOffer", headers={"authorization": "Token " + self.token}, json=sell_offer_data)
+
+    @task
+    def addBuyOffer(self):
+        # 1. Pobierz dane użytkownika, aby sprawdzić stan konta
+        user_info_response = self.client.get("/api/user", headers={"authorization": "Token " + self.token})
+        user_info = user_info_response.json()
+        # 2. Sprawdź, czy użytkownik ma co najmniej 1000 jednostek waluty
+        if user_info['money'] >= 1000:
+            # 3. Pobierz listę firm dostępnych w systemie
+            response = self.client.get("/api/companies", headers={"authorization": "Token " + self.token})
+            companies = response.json()
+            
+            # 4. Wybierz losową firmę
+            if companies:
+                company = random.choice(companies)
+                company_id = company['id']
+                
+                # 3. Określ losową liczbę akcji do zakupu i maksymalną cenę, jaką użytkownik jest gotów zapłacić
+                amount = random.randint(1, 10)  # Losowa liczba akcji do zakupu
+                
+                # 4. Wyślij ofertę kupna
+                buy_offer_data = {
+                    "company": company_id,
+                    "startAmount": amount,
+                    "amount": amount,
+                }
+                self.client.post("/api/addBuyOffer", headers={"authorization": "Token " + self.token}, json=buy_offer_data)
