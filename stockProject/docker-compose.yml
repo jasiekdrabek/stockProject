@@ -1,0 +1,77 @@
+services:
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: stock
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "6543:5432"
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+  db_test:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: test_stock
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    ports:
+      - "6544:5432"
+
+  web:
+    build: .
+    command: 
+      sh -c 
+      "python manage.py makemigrations &&
+      python manage.py migrate &&
+      python manage.py migrate --database=test &&
+      python manage.py collectstatic --noinput &&
+      gunicorn stockProject.wsgi:application --bind 0.0.0.0:8080"
+    volumes:
+      - .:/app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+      - redis
+
+  celery_worker:
+    build: .
+    command: celery -A stockProject worker -l info -P gevent
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+    deploy:
+      replicas: 3  # Skalowanie workerów Celery (3 instancje)
+
+  celery_beat:
+    build: .
+    command: celery -A stockProject beat --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+  
+  locust:
+    build: ../loadTestingApp  # ścieżka do nowego projektu
+    command: locust --host=http://192.168.1.110:8080
+    ports:
+      - "8089:8089"
+    depends_on:
+      - web
+      - db
+
+volumes:
+  postgres_data:
+  postgres_test_data:

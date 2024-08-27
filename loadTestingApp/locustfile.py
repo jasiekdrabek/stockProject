@@ -1,20 +1,25 @@
-import json
 import time
-from locust import HttpUser, task, between
+from locust import HttpUser, task, between, events
 import random
 import string
 import faker
-from django.contrib.auth import authenticate
-from django.core.exceptions import ValidationError
+import psycopg2
+import uuid
+import psutil
+import threading
+import datetime
 
-import os
-import django
 
-# Ustawienie zmiennej środowiskowej z nazwą modułu ustawień
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'stockProject.settings')
+# Konfiguracja połączenia z bazą danych
+conn = psycopg2.connect(
+    dbname="test_stock",  # Nazwa bazy danych
+    user="postgres",  # Użytkownik bazy danych
+    password="postgres",  # Hasło do bazy danych
+    host="db_test",  # Adres hosta (może być też 'db' jeśli baza działa w kontenerze Dockera)
+    port="5432"  # Port, na którym działa PostgreSQL
+)
+cursor = conn.cursor()
 
-# Inicjalizacja Django
-django.setup()
 # Inicjalizujemy generator danych
 fake = faker.Faker()
 
@@ -23,7 +28,7 @@ def generate_random_data():
     name = fake.first_name()
     surname = fake.last_name()
     email = fake.email()
-    password = generate_valid_password(username)
+    password = generate_valid_password()
 
     return {
         "username": username,
@@ -33,17 +38,10 @@ def generate_random_data():
         "email": email
     }
 
-def generate_valid_password(username):
-    while True:
-        # Generowanie losowego hasła
-        password = ''.join(random.choices(string.ascii_letters + string.digits + string.punctuation, k=12))
-        try:
-            # Sprawdzamy czy hasło spełnia walidację Django
-            authenticate(username=username, password=password)
-            return password
-        except ValidationError:
-            continue
-
+def generate_valid_password():
+    password = ''.join(random.choices(string.ascii_letters + string.digits + string.punctuation, k=12))
+    return password
+'''
 class WebsiteReadOnlyUser(HttpUser):
     weight = 1
     wait_time = between(0.5, 1)
@@ -82,7 +80,7 @@ class WebsiteReadOnlyUser(HttpUser):
         self.token = response.json()['token']
         company_name = fake.company()
         self.client.post("/api/addCompany",headers={"authorization": "Token " + self.token}, json={"name":company_name})
-        
+        '''
 class WebsiteActiveUser(HttpUser):
     weight = 2
     wait_time = between(0.5, 1)
@@ -135,7 +133,7 @@ class WebsiteActiveUser(HttpUser):
         user_info_response = self.client.get("/api/user", headers={"authorization": "Token " + self.token})
         user_info = user_info_response.json()
         # 2. Sprawdź, czy użytkownik ma co najmniej 1000 jednostek waluty
-        if user_info['money'] >= 1000:
+        if user_info['moneyAfterTransations'] >= 1000:
             # 3. Pobierz listę firm dostępnych w systemie
             response = self.client.get("/api/companies", headers={"authorization": "Token " + self.token})
             companies = response.json()
@@ -154,4 +152,41 @@ class WebsiteActiveUser(HttpUser):
                     "startAmount": amount,
                     "amount": amount,
                 }
+                start = datetime.datetime.now()
                 self.client.post("/api/addBuyOffer", headers={"authorization": "Token " + self.token}, json=buy_offer_data)
+                end = datetime.datetime.now()
+                apiTime = end - start
+
+    @events.request.add_listener
+    def log_request(request_type, name, response_time, response_length, response, context, exception, **kwargs):
+        request_id = str(uuid.uuid4())  # Unikalne ID dla żądania
+        timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+
+        # Zapisanie danych do modelu TrafficLog
+        cursor.execute(
+            """INSERT INTO "stockApp_trafficlog" (timestamp, request_id, api_time) VALUES (%s, %s, %s)""",
+            (timestamp, request_id, response_time / 1000.0)  # Konwersja na sekundy
+        )
+        conn.commit()  # Zatwierdzenie transakcji
+
+def log_cpu_usage():
+    while True:
+        timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+        cpu_usage = psutil.cpu_percent(interval=1)
+        memory_usage = psutil.virtual_memory().percent
+
+        sql_insert = """
+        INSERT INTO "stockApp_trafficcpu" (timestamp, cpu_usage, memory_usage)
+        VALUES (%s, %s, %s)
+        """
+
+        # Wykonanie zapytania
+        cursor.execute(sql_insert, (timestamp, cpu_usage, memory_usage))
+
+        # Zatwierdzenie transakcji
+        conn.commit()
+
+        time.sleep(5)  # Zapisuj dane co 5 sekund
+
+# Uruchomienie wątku do zbierania danych o CPU
+threading.Thread(target=log_cpu_usage, daemon=True).start()
