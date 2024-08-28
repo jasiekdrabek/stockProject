@@ -24,17 +24,21 @@ app.conf.beat_schedule = {
     'schedule_transactions': {
         'task': 'stockApp.tasks.schedule_transactions',
         'schedule': 30.0,  # co 30 s
+        'options': {'queue': 'transactions'},  # Przypisanie kolejki
     },
     'update_balance':{
         'task': 'stockApp.tasks.process_balance_updates',
         'schedule': 30.0,
+        'options': {'queue': 'balance_updates'},  # Przypisanie kolejki
     },
     'update_stock_rates': {
         'task': 'stockApp.tasks.update_stock_rates',
         'schedule': 15.0,  # co 10 sekund
+        'options': {'queue': 'stock_rates'},  # Przypisanie kolejki
     },
     'expire-offers-every-minute': {
         'task': 'stockApp.tasks.expire_offers',
         'schedule': 30.0,  # Uruchamiaj zadanie co minutę
+        'options': {'queue': 'expire_offers'},  # Przypisanie kolejki
     },
 }
