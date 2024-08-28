@@ -7,7 +7,9 @@ import psycopg2
 import uuid
 import psutil
 import threading
-import datetime
+import pytz
+from datetime import datetime
+import os
 
 
 # Konfiguracja połączenia z bazą danych
@@ -44,12 +46,12 @@ def generate_valid_password():
 '''
 class WebsiteReadOnlyUser(HttpUser):
     weight = 1
-    wait_time = between(0.5, 1)
+    wait_time = between(0.1, 0.2)
     token = ''
 
-    @task(3)
-    def wait(self):
-        pass
+    #@task()
+    #def wait(self):
+    #    pass
     
     @task
     def getSellOffers(self):
@@ -59,14 +61,14 @@ class WebsiteReadOnlyUser(HttpUser):
     def getBuyOffers(self):
         self.client.get("/api/user/buyOffers", headers={"authorization": "Token " + self.token})
         
-    @task
-    def getStocks(self):
-        self.client.get("/api/user/stocks", headers={"authorization": "Token " + self.token})
+    #@task
+    #def getStocks(self):
+    #    self.client.get("/api/user/stocks", headers={"authorization": "Token " + self.token})
         
-    @task
-    def getCompanies(self):
-        print(self.token)
-        self.client.get("/api/companies",headers={"authorization": "Token " + self.token})
+    #@task
+    #def getCompanies(self):
+    #    print(self.token)
+    #    self.client.get("/api/companies",headers={"authorization": "Token " + self.token})
 
     def on_start(self):
         login = generate_random_data()
@@ -108,9 +110,10 @@ class WebsiteActiveUser(HttpUser):
         # Sprawdzenie, w jakich firmach użytkownik ma akcje
         response = self.client.get("/api/user/stocks", headers={"authorization": "Token " + self.token})
         user_stocks = response.json()
-        if user_stocks:
+        if len(user_stocks) > 1:
             # Losowanie firmy, z której sprzedamy akcje
-            selected_stock = random.choice(user_stocks)
+            stocks_to_choose_from = user_stocks[:-1]
+            selected_stock = random.choice(stocks_to_choose_from)
             company_id = selected_stock['company']
             available_amount = selected_stock['amount']
             if available_amount == 0:
@@ -139,7 +142,8 @@ class WebsiteActiveUser(HttpUser):
             companies = response.json()
             
             # 4. Wybierz losową firmę
-            if companies:
+            if len(companies) > 1:
+                companies = companies[:-1]
                 company = random.choice(companies)
                 company_id = company['id']
                 
@@ -152,36 +156,45 @@ class WebsiteActiveUser(HttpUser):
                     "startAmount": amount,
                     "amount": amount,
                 }
-                start = datetime.datetime.now()
                 self.client.post("/api/addBuyOffer", headers={"authorization": "Token " + self.token}, json=buy_offer_data)
-                end = datetime.datetime.now()
-                apiTime = end - start
-
+           
     @events.request.add_listener
     def log_request(request_type, name, response_time, response_length, response, context, exception, **kwargs):
-        request_id = str(uuid.uuid4())  # Unikalne ID dla żądania
-        timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+        try:
+            print(response.json())
+            if isinstance(response.json(), list):
+                id = response.json()[-1]["request_id"]
+            else:
+                id = response.json()['request_id']
+        except (ValueError, KeyError):
+            # Jeśli nie można uzyskać request_id z odpowiedzi, użyj tymczasowego lub domyślnego
+            id = 'unknown'
+        local_tz = pytz.timezone('Europe/Warsaw')
+        timestamp = datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S')
 
         # Zapisanie danych do modelu TrafficLog
         cursor.execute(
             """INSERT INTO "stockApp_trafficlog" (timestamp, request_id, api_time) VALUES (%s, %s, %s)""",
-            (timestamp, request_id, response_time / 1000.0)  # Konwersja na sekundy
+            (timestamp, id, response_time / 1000.0)  # Konwersja na sekundy
         )
         conn.commit()  # Zatwierdzenie transakcji
 
 def log_cpu_usage():
+    time.sleep(60)
+    id = os.getenv('ENV_ID')
     while True:
-        timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+        local_tz = pytz.timezone('Europe/Warsaw')
+        timestamp = datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S')
         cpu_usage = psutil.cpu_percent(interval=1)
         memory_usage = psutil.virtual_memory().percent
 
         sql_insert = """
-        INSERT INTO "stockApp_trafficcpu" (timestamp, cpu_usage, memory_usage)
-        VALUES (%s, %s, %s)
+        INSERT INTO "stockApp_cpu" (timestamp, cpu_usage, memory_usage,contener_id)
+        VALUES (%s, %s, %s,%s)
         """
 
         # Wykonanie zapytania
-        cursor.execute(sql_insert, (timestamp, cpu_usage, memory_usage))
+        cursor.execute(sql_insert, (timestamp, cpu_usage, memory_usage,id))
 
         # Zatwierdzenie transakcji
         conn.commit()
@@ -190,3 +203,15 @@ def log_cpu_usage():
 
 # Uruchomienie wątku do zbierania danych o CPU
 threading.Thread(target=log_cpu_usage, daemon=True).start()
+
+def log_traffic_log(time):
+    request_id = str(uuid.uuid4())  # Unikalne ID dla żądania
+    local_tz = pytz.timezone('Europe/Warsaw')
+    timestamp = datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S')
+    # Zapisanie danych do modelu TrafficLog
+    cursor.execute(
+            """INSERT INTO "stockApp_trafficlog" (timestamp, request_id, api_time) VALUES (%s, %s, %s)""",
+            (timestamp, request_id, time / 1000.0)  # Konwersja na sekundy
+    )
+    conn.commit()  # Zatwierdzenie transakcji
+    
