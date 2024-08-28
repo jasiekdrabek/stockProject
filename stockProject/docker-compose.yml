@@ -9,6 +9,14 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "6543:5432"
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: "2g"
+        reservations:
+          cpus: "2.0"
+          memory: "1g"
 
   redis:
     image: redis:latest
@@ -34,7 +42,9 @@ services:
       python manage.py migrate &&
       python manage.py migrate --database=test &&
       python manage.py collectstatic --noinput &&
-      gunicorn stockProject.wsgi:application --bind 0.0.0.0:8080"
+      python cpu.py &
+      gunicorn stockProject.wsgi:application --bind 0.0.0.0:8080 &
+      wait"
     volumes:
       - .:/app
     ports:
@@ -42,32 +52,109 @@ services:
     depends_on:
       - db
       - redis
-
-  celery_worker:
+    environment:
+      ENV_ID: "web"
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: "2g"
+        reservations:
+          cpus: "2.0"
+          memory: "1g"
+  
+  celery_worker_schedule_transactions:
     build: .
-    command: celery -A stockProject worker -l info -P gevent
+    command: 
+      sh -c 
+      "python cpu.py &
+      celery -A stockProject worker -l info -Q transactions -P gevent"      
     volumes:
       - .:/app
     depends_on:
       - db
       - redis
+    environment:
+      ENV_ID: "celery_worker_schedule_transactions"
+
+  celery_worker_execute_transactions:
+    build: .
+    command:
+      sh -c 
+      "python cpu.py &
+      celery -A stockProject worker -l info -P gevent"
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+    environment:
+      ENV_ID: "celery_worker_execute_transactions"
     deploy:
-      replicas: 3  # Skalowanie workerów Celery (3 instancje)
+      replicas: 4  #  worker dedykowany do przetwarzania transakcji
+
+  celery_worker_balance_updates:
+    build: .
+    command:
+      sh -c 
+      "python cpu.py &
+      celery -A stockProject worker -l info -Q balance_updates -P gevent"
+    volumes:
+      - .:/app
+    environment:
+      ENV_ID: "celery_worker_balance_updates"
+    depends_on:
+      - db
+      - redis
+
+  celery_worker_stock_rates:
+    build: .
+    command:
+      sh -c 
+      "python cpu.py &
+      celery -A stockProject worker -l info -Q stock_rates -P gevent"
+    volumes:
+      - .:/app
+    environment:
+      ENV_ID: "celery_worker_stock_rates"
+    depends_on:
+      - db
+      - redis
+
+  celery_worker_expire_offers:
+    build: .
+    command:
+      sh -c 
+      "python cpu.py &
+      celery -A stockProject worker -l info -Q expire_offers -P gevent"
+    volumes:
+      - .:/app
+    environment:
+      ENV_ID: "celery_worker_expire_offers"
+    depends_on:
+      - db
+      - redis
 
   celery_beat:
     build: .
-    command: celery -A stockProject beat --loglevel=info
+    command:
+      sh -c 
+      "python cpu.py &
+      celery -A stockProject beat --loglevel=info"
     volumes:
       - .:/app
+    environment:
+      ENV_ID: "celery_beat"
     depends_on:
       - db
       - redis
-  
   locust:
     build: ../loadTestingApp  # ścieżka do nowego projektu
     command: locust --host=http://192.168.1.110:8080
     ports:
       - "8089:8089"
+    environment:
+      ENV_ID: "locust"
     depends_on:
       - web
       - db
