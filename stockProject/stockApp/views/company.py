@@ -5,6 +5,7 @@ from stockApp.models import Company, Stock
 from rest_framework import status
 import random
 from datetime import datetime
+import uuid
 
 from stockApp.serializers import CompanySerializer, StockRateSerializer
 
@@ -13,7 +14,11 @@ from stockApp.serializers import CompanySerializer, StockRateSerializer
 def companies(request):
     companies = Company.objects.all()
     serializer = CompanySerializer(companies, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    data = serializer.data
+    response_data = dict(data)
+    response_data = list(data)
+    response_data.append({'request_id': str(uuid.uuid4())})
+    return Response(response_data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -34,7 +39,8 @@ def createCompany(request):
         if stock_rate_serializer.is_valid():
             stock_rate_serializer.save()
             Stock.objects.create(amount=10000, user = request.user, company=company)
-            return Response({'message': 'Company created successfully.'}, status=status.HTTP_201_CREATED)
+            request_id = str(uuid.uuid4())
+            return Response({'message': 'Company created successfully.', 'request_id':request_id}, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

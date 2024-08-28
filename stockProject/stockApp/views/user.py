@@ -4,6 +4,7 @@ from stockApp.serializers import UserUpdateSerializer, StockSerializer, CustomUs
 from stockApp.models import Stock, CustomUser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+import uuid
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
@@ -12,7 +13,10 @@ def addMoney(request):
     serializer = UserUpdateSerializer(user, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        data = serializer.data
+        response_data = dict(data)
+        response_data['request_id'] = str(uuid.uuid4())
+        return Response(response_data, status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
@@ -20,14 +24,21 @@ def addMoney(request):
 def getUserStocks(request):
     stocks= Stock.objects.filter(user=request.user)
     serializer = StockSerializer(stocks, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    data = serializer.data
+    response_data = list(data)
+    response_data.append({'request_id': str(uuid.uuid4())})
+    return Response(response_data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def getUserInfo(request):
     user = request.user
     serializer = CustomUserInfoSerializer(user)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    print(serializer.data)
+    data = serializer.data
+    response_data = dict(data)
+    response_data['request_id'] = str(uuid.uuid4())
+    return Response(response_data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -41,4 +52,4 @@ def getUsersMoneyCheck(request):
         moneyat += user.moneyAfterTransations
     money = money / users.count()
     moneyat = moneyat / users.count()
-    return Response({"money":money,"moneyAT": moneyat}, status = status.HTTP_200_OK)  
+    return Response({"money":money,"moneyAT": moneyat,'request_id': str(uuid.uuid4())}, status = status.HTTP_200_OK)  

@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from stockApp.serializers import BuyOfferSerializer
 from stockApp.models import BuyOffer
+import uuid
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -12,7 +13,10 @@ def addBuyOffer(request):
     serializer = BuyOfferSerializer(data=request.data, context={'request': request})  # Przekazywanie danych do serializera
     if serializer.is_valid():
         serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        data = serializer.data
+        response_data = dict(data)
+        response_data['request_id'] = str(uuid.uuid4())
+        return Response(response_data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  # Zwracanie błędów walidacji
 
 @api_view(['GET'])
@@ -20,7 +24,10 @@ def addBuyOffer(request):
 def buyOffers(request):
     buy_offers = BuyOffer.objects.filter(user=request.user, actual = True)
     serializer = BuyOfferSerializer(buy_offers, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    data = serializer.data
+    response_data = list(data)
+    response_data.append({'request_id': str(uuid.uuid4())})
+    return Response(response_data, status=status.HTTP_200_OK)
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
@@ -28,7 +35,7 @@ def deleteBuyOffer(request,pk):
     try:
         buy_offer = BuyOffer.objects.get(pk=pk, user=request.user)
     except BuyOffer.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response({'request_id': str(uuid.uuid4())},status=status.HTTP_404_NOT_FOUND)
     # Obliczenie kwoty, którą należy zwrócić do pola moneyAfterTransations
     total_cost = round(buy_offer.amount * buy_offer.maxPrice,2)
 
@@ -39,4 +46,4 @@ def deleteBuyOffer(request,pk):
 
     buy_offer.actual = False
     buy_offer.save()
-    return Response(status=status.HTTP_204_NO_CONTENT)
+    return Response({'request_id': str(uuid.uuid4())},status=status.HTTP_204_NO_CONTENT)
