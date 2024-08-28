@@ -52,6 +52,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'stockApp.middleware.LogRequestMiddleware.LogRequestMiddleware',
+    'stockApp.middleware.DatabaseTimeMiddleware.DatabaseTimeMiddleware',
 ]
 
 ROOT_URLCONF = 'stockProject.urls'
@@ -161,6 +163,25 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Europe/Warsaw'
+
+from kombu import Exchange, Queue
+
+CELERY_QUEUES = (
+    Queue('default', Exchange('default'), routing_key='default'),
+    Queue('transactions', Exchange('transactions'), routing_key='transactions'),
+    Queue('balance_updates', Exchange('balance_updates'), routing_key='balance_updates'),
+    Queue('stock_rates', Exchange('stock_rates'), routing_key='stock_rates'),
+    Queue('expire_offers', Exchange('expire_offers'), routing_key='expire_offers'),
+)
+
+CELERY_ROUTES = {
+    'stockApp.tasks.schedule_transactions': {'queue': 'transactions'},
+    'stockApp.tasks.process_balance_updates': {'queue': 'balance_updates'},
+    'stockApp.tasks.update_stock_rates': {'queue': 'stock_rates'},
+    'stockApp.tasks.expire_offers': {'queue': 'expire_offers'},
+}
+
+
 
 import warnings
 
