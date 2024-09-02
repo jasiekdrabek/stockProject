@@ -1,8 +1,9 @@
 
 import datetime
 import math
+import time
 from celery import shared_task, group
-from .models import BuyOffer, SellOffer, BalanceUpdate,Transaction, Company, Stock, StockRate
+from .models import BuyOffer, SellOffer, BalanceUpdate,Transaction, Company, Stock, StockRate, TradeLog
 from django.utils import timezone
 from django.db import transaction
 import logging
@@ -12,9 +13,20 @@ logger = logging.getLogger(__name__)
 @shared_task
 def execute_transactions(company_ids):
     try:
+        database_time = 0
+        number_of_sell_offers = 0
+        number_of_buy_offers = 0
+        start_time = time.time()
         for company_id in company_ids:
-            buy_offers = BuyOffer.objects.filter(company_id__in=company_ids, actual=True).order_by('-maxPrice')
-            sell_offers = SellOffer.objects.filter(company_id__in=company_ids, actual=True).order_by('minPrice')
+            db_start_time = time.time()
+            buy_offers = BuyOffer.objects.filter(company_id=company_id, actual=True).order_by('-maxPrice')
+            sell_offers = SellOffer.objects.filter(company_id=company_id, actual=True).order_by('minPrice')
+            db_end_time = time.time()
+            database_time += db_end_time - db_start_time
+            number_of_buy_offers += buy_offers.count()
+            number_of_sell_offers += sell_offers.count()
+            if number_of_sell_offers == 0 and number_of_buy_offers == 0:
+                continue
             for buy_offer in buy_offers:
                 for sell_offer in sell_offers:
                     buyer = buy_offer.user
@@ -36,8 +48,11 @@ def execute_transactions(company_ids):
                                     buy_offer.actual = False
                                 if sell_offer.amount == 0:
                                     sell_offer.actual = False
+                                db_start_time = time.time()    
                                 buy_offer.save()
                                 sell_offer.save()
+                                db_end_time = time.time()
+                                database_time += db_end_time - db_start_time
 
                                 # Aktualizacja pieniędzy dla kupującego i sprzedającego
                                  # Oblicz zmiany w saldzie
@@ -47,6 +62,7 @@ def execute_transactions(company_ids):
                                 seller_money_after_transactions_change = total_price
 
                                 # Tworzenie wpisu BalanceUpdate dla kupującego
+                                db_start_time = time.time() 
                                 BalanceUpdate.objects.create(
                                     user=buyer,
                                     change_amount=buyer_money_change,
@@ -72,7 +88,10 @@ def execute_transactions(company_ids):
 
                                 # Aktualizacja akcji kupującego; sprzedający ma zabrane w momencie tworzenia oferty, aby nie mógł utworzyć nieskończenie wiele ofert.
                                 buy_stock, created = Stock.objects.get_or_create(user=buy_offer.user, company_id=company_id)
+                                db_end_time = time.time()
+                                database_time += db_end_time - db_start_time
                                 buy_stock.amount += amount_to_trade
+                                db_start_time = time.time() 
                                 buy_stock.save()
                                 Transaction.objects.create(
                                     buyOffer=buy_offer,
@@ -81,8 +100,27 @@ def execute_transactions(company_ids):
                                     price=price,
                                     total_price=total_price
                                 )
+                                db_end_time = time.time()
+                                database_time += db_end_time - db_start_time
                             else:
                                 continue
+        if number_of_sell_offers == 0 and number_of_buy_offers == 0:
+            return company_ids               
+        # Pomiar końcowy czasu aplikacji
+        end_time = time.time()
+
+        # Obliczenie czasu aplikacji i czasu bazy danych
+        application_time = end_time - start_time
+
+            # Zapis do modelu TradeLog
+        TradeLog.objects.using('test').create(
+            application_time=application_time,
+            database_time=database_time,
+            number_of_sell_offers=number_of_sell_offers,
+            number_of_buy_offers=number_of_buy_offers,
+            timestamp = timezone.now(),
+            company_ids = company_ids
+            )                            
         return company_ids
     except Exception as e:
         logger.error(f"Error executing transactions: {e}")
