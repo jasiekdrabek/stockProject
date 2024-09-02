@@ -11,6 +11,17 @@ import pytz
 from datetime import datetime
 import os
 
+from gevent.lock import Semaphore
+all_locusts_spawned = Semaphore()
+all_locusts_spawned.acquire()
+
+def on_hatch_complete(**kw):
+    all_locusts_spawned.release()
+
+@events.spawning_complete.add_listener
+def on_hatch_complete(**kw):
+    all_locusts_spawned.release()
+
 
 # Konfiguracja połączenia z bazą danych
 conn = psycopg2.connect(
@@ -85,7 +96,7 @@ class WebsiteReadOnlyUser(HttpUser):
         '''
 class WebsiteActiveUser(HttpUser):
     weight = 2
-    wait_time = between(0.5, 1)
+    wait_time = between(0.2, 0.5)
     token = ''
     
     def on_start(self):
@@ -100,6 +111,7 @@ class WebsiteActiveUser(HttpUser):
         self.token = response.json()['token']
         company_name = fake.company()
         self.client.post("/api/addCompany",headers={"authorization": "Token " + self.token}, json={"name":company_name})
+        all_locusts_spawned.wait()
 
     @task
     def wait(self):
@@ -161,7 +173,6 @@ class WebsiteActiveUser(HttpUser):
     @events.request.add_listener
     def log_request(request_type, name, response_time, response_length, response, context, exception, **kwargs):
         try:
-            print(response.json())
             if isinstance(response.json(), list):
                 id = response.json()[-1]["request_id"]
             else:
@@ -202,7 +213,7 @@ def log_cpu_usage():
         time.sleep(5)  # Zapisuj dane co 5 sekund
 
 # Uruchomienie wątku do zbierania danych o CPU
-threading.Thread(target=log_cpu_usage, daemon=True).start()
+#threading.Thread(target=log_cpu_usage, daemon=True).start()
 
 def log_traffic_log(time):
     request_id = str(uuid.uuid4())  # Unikalne ID dla żądania
