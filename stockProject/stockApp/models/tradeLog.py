@@ -6,3 +6,4 @@ class TradeLog(models.Model):
     database_time = models.FloatField()
     number_of_sell_offers = models.IntegerField()
     number_of_buy_offers = models.IntegerField()
+    company_ids = models.JSONField()
