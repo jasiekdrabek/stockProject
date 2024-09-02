@@ -17,7 +17,6 @@ class LogRequestMiddleware(MiddlewareMixin):
         if hasattr(request, 'start_time') and hasattr(response, 'data'):
             total_time = time.time() - request.start_time
             db_time = sum(float(query['time']) for query in connection.queries)
-            print(response.data)
             if isinstance(response.data, list):
                 id = response.data[-1]["request_id"]
             else:

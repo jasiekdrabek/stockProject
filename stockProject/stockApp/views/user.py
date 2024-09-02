@@ -34,7 +34,6 @@ def getUserStocks(request):
 def getUserInfo(request):
     user = request.user
     serializer = CustomUserInfoSerializer(user)
-    print(serializer.data)
     data = serializer.data
     response_data = dict(data)
     response_data['request_id'] = str(uuid.uuid4())
