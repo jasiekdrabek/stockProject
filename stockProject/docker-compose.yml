@@ -48,9 +48,7 @@ services:
       python manage.py migrate &&
       python manage.py migrate --database=test &&
       python manage.py collectstatic --noinput &&
-      python cpu.py &
-      gunicorn stockProject.wsgi:application --bind 0.0.0.0:8080 &
-      wait"
+      gunicorn stockProject.wsgi:application --bind 0.0.0.0:8080"
     volumes:
       - .:/app
     ports:
@@ -75,9 +73,7 @@ services:
   celery_worker_schedule_transactions:
     build: .
     command: 
-      sh -c 
-      "python cpu.py &
-      celery -A stockProject worker -l info -Q transactions -P gevent"      
+      celery -A stockProject worker -l info -Q transactions -P gevent     
     volumes:
       - .:/app
     depends_on:
@@ -92,9 +88,7 @@ services:
   celery_worker_execute_transactions:
     build: .
     command:
-      sh -c 
-      "python cpu.py &
-      celery -A stockProject worker -l info -P gevent"
+      celery -A stockProject worker -l info -P gevent
     volumes:
       - .:/app
     depends_on:
@@ -127,11 +121,8 @@ services:
 
   celery_worker_balance_updates:
     build: .
-    command:
-      sh -c 
-      "python cpu.py &
-      celery -A stockProject worker -l info -Q balance_updates -P gevent &
-      wait"
+    command:      
+      celery -A stockProject worker -l info -Q balance_updates -P gevent
     volumes:
       - .:/app
     networks:
@@ -146,9 +137,7 @@ services:
   celery_worker_stock_rates:
     build: .
     command:
-      sh -c 
-      "python cpu.py &
-      celery -A stockProject worker -l info -Q stock_rates -P gevent"
+      celery -A stockProject worker -l info -Q stock_rates -P gevent
     volumes:
       - .:/app
     networks:
@@ -162,10 +151,8 @@ services:
 
   celery_worker_expire_offers:
     build: .
-    command:
-      sh -c 
-      "python cpu.py &
-      celery -A stockProject worker -l info -Q expire_offers -P gevent"
+    command:      
+      celery -A stockProject worker -l info -Q expire_offers -P gevent
     volumes:
       - .:/app
     networks:
@@ -180,9 +167,7 @@ services:
   celery_beat:
     build: .
     command:
-      sh -c 
-      "python cpu.py &
-      celery -A stockProject beat --loglevel=info"
+      celery -A stockProject beat --loglevel=info
     volumes:
       - .:/app
     networks:
