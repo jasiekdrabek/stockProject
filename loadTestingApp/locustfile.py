@@ -102,7 +102,6 @@ class WebsiteActiveUser(HttpUser):
     def on_start(self):
         login = generate_random_data()
         self.client.post("/api/signUp", json=login)
-        time.sleep(1.0)
         data = {
             'username': login['username'],
             'password': login['password']
