@@ -57,7 +57,7 @@ def log_resource_usage():
     """
     Uruchamia wątki logowania zasobów dla każdego kontenera.
     """
-    time.sleep(10)
+    time.sleep(30)
     threads = []
     for container in client.containers.list():
         thread = threading.Thread(target=log_container_usage, args=(container,))
