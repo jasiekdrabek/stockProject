@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from stockApp.serializers import UserUpdateSerializer, StockSerializer, CustomUserInfoSerializer
 from stockApp.models import Stock, CustomUser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 import uuid
 
@@ -40,7 +40,7 @@ def getUserInfo(request):
     return Response(response_data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def getUsersMoneyCheck(request):
     admin_users = CustomUser.objects.filter(is_superuser=True)
     users = CustomUser.objects.exclude(id__in=admin_users.values_list('id', flat=True)).all()
