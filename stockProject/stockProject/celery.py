@@ -1,7 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 import os
 from celery import Celery
-from celery.schedules import crontab
 
 # ustawienie domyślnego modułu ustawień Django dla Celery
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'stockProject.settings')
@@ -18,17 +17,15 @@ app.autodiscover_tasks()
 def debug_task(self):
     print(f'Request: {self.request!r}')
 
-
-
 app.conf.beat_schedule = {
     'schedule_transactions': {
         'task': 'stockApp.tasks.schedule_transactions',
-        'schedule': 30.0,  # co 30 s
+        'schedule': float(os.getenv("TRANSACTION_TIME")),  # co 30 s
         'options': {'queue': 'transactions'},  # Przypisanie kolejki
     },
     'update_balance':{
         'task': 'stockApp.tasks.process_balance_updates',
-        'schedule': 30.0,
+        'schedule': 5.0,
         'options': {'queue': 'balance_updates'},  # Przypisanie kolejki
     },
     'update_stock_rates': {
@@ -38,7 +35,7 @@ app.conf.beat_schedule = {
     },
     'expire-offers-every-minute': {
         'task': 'stockApp.tasks.expire_offers',
-        'schedule': 30.0,  # Uruchamiaj zadanie co minutę
+        'schedule': 60.0,  # Uruchamiaj zadanie co minutę
         'options': {'queue': 'expire_offers'},  # Przypisanie kolejki
     },
 }
