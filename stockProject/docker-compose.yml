@@ -59,6 +59,7 @@ services:
       - db_test
     environment:
       ENV_ID: "web"
+      TRANSACTION_TIME: "15.0"
     networks:
       - gielda_network
     deploy:
@@ -84,6 +85,7 @@ services:
       - gielda_network
     environment:
       ENV_ID: "celery_worker_schedule_transactions"
+      TRANSACTION_TIME: "15.0"
 
   celery_worker_execute_transactions:
     build: .
@@ -99,6 +101,7 @@ services:
       - gielda_network
     environment:
       ENV_ID: "celery_worker_execute_transactions"
+      TRANSACTION_TIME: "15.0"
     deploy:
       replicas: 4  #  worker dedykowany do przetwarzania transakcji
 
@@ -129,6 +132,7 @@ services:
       - gielda_network
     environment:
       ENV_ID: "celery_worker_balance_updates"
+      TRANSACTION_TIME: "15.0"
     depends_on:
       - db
       - redis
@@ -144,6 +148,7 @@ services:
       - gielda_network
     environment:
       ENV_ID: "celery_worker_stock_rates"
+      TRANSACTION_TIME: "15.0"
     depends_on:
       - db
       - redis
@@ -159,6 +164,7 @@ services:
       - gielda_network
     environment:
       ENV_ID: "celery_worker_expire_offers"
+      TRANSACTION_TIME: "15.0"
     depends_on:
       - db
       - redis
@@ -174,6 +180,7 @@ services:
       - gielda_network
     environment:
       ENV_ID: "celery_beat"
+      TRANSACTION_TIME: "15.0"
     depends_on:
       - db
       - redis
@@ -181,13 +188,14 @@ services:
 
   locust:
     build: ../loadTestingApp  # ścieżka do nowego projektu
-    command: locust --host=http://web:8080
+    command: /app/start_locust.sh
     ports:
       - "8089:8089"
     networks:
       - gielda_network
     environment:
       ENV_ID: "locust"
+      LOCUST_TIME: "10m"
     depends_on:
       - web
       - db
