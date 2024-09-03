@@ -118,7 +118,7 @@ def execute_transactions(company_ids):
             database_time=database_time,
             number_of_sell_offers=number_of_sell_offers,
             number_of_buy_offers=number_of_buy_offers,
-            timestamp = timezone.now(),
+            timestamp = datetime.datetime.now(),
             company_ids = company_ids
             )                            
         return company_ids
@@ -190,7 +190,7 @@ def process_balance_updates():
 
 @shared_task
 def expire_offers():
-    now = datetime.datetime.now()
+    now = timezone.now()
 
     # Znajdowanie i aktualizowanie przeterminowanych ofert kupna
     expired_buy_offers = BuyOffer.objects.filter(actual=True, dateLimit__lt=now)
