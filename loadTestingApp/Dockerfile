@@ -19,6 +19,4 @@ COPY start_locust.sh /app/start_locust.sh
 RUN dos2unix /app/start_locust.sh && chmod +x /app/start_locust.sh
 
 # Ustawienie domyślnej komendy startowej
-#RUN /app/start_locust.sh
-CMD ["locust" "--host=http:web:8080"]
-#CMD ["python" "test.py"]
+CMD ["/app/start_locust.sh"]

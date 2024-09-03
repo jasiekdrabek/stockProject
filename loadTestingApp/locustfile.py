@@ -1,17 +1,14 @@
-import time
-from locust import HttpUser, task, between, events
+from locust import FastHttpUser ,HttpUser, task, constant, between, events
 import random
 import string
 import faker
 import psycopg2
-import uuid
-import psutil
-import threading
 import pytz
 from datetime import datetime
 import os
-
 from gevent.lock import Semaphore
+
+time=float(os.getenv("TIME_BETWEEN_REQUESTS"))
 all_locusts_spawned = Semaphore()
 all_locusts_spawned.acquire()
 
@@ -54,15 +51,28 @@ def generate_random_data():
 def generate_valid_password():
     password = ''.join(random.choices(string.ascii_letters + string.digits + string.punctuation, k=12))
     return password
-'''
-class WebsiteReadOnlyUser(HttpUser):
-    weight = 1
-    wait_time = between(0.1, 0.2)
-    token = ''
 
-    #@task()
-    #def wait(self):
-    #    pass
+class WebsiteReadOnlyUser(FastHttpUser):
+    weight = 1
+    wait_time = constant(time)
+    token = ''
+    
+    def on_start(self):
+        login = generate_random_data()
+        self.client.post("/api/signUp", json=login)
+        data = {
+            'username': login['username'],
+            'password': login['password']
+        }
+        response = self.client.post("/api/signIn",json=data)
+        self.token = response.json()['token']
+        company_name = fake.company()
+        self.client.post("/api/addCompany",headers={"authorization": "Token " + self.token}, json={"name":company_name})
+        all_locusts_spawned.wait()
+
+    @task()
+    def wait(self):
+        pass
     
     @task
     def getSellOffers(self):
@@ -72,31 +82,19 @@ class WebsiteReadOnlyUser(HttpUser):
     def getBuyOffers(self):
         self.client.get("/api/user/buyOffers", headers={"authorization": "Token " + self.token})
         
-    #@task
-    #def getStocks(self):
-    #    self.client.get("/api/user/stocks", headers={"authorization": "Token " + self.token})
+    @task
+    def getStocks(self):
+        self.client.get("/api/user/stocks", headers={"authorization": "Token " + self.token})
         
-    #@task
-    #def getCompanies(self):
-    #    print(self.token)
-    #    self.client.get("/api/companies",headers={"authorization": "Token " + self.token})
-
-    def on_start(self):
-        login = generate_random_data()
-        self.client.post("/api/signUp", json=login)
-        time.sleep(1.0)
-        data = {
-            'username': login['username'],
-            'password': login['password']
-        }
-        response = self.client.post("/api/signIn",json=data)
-        self.token = response.json()['token']
-        company_name = fake.company()
-        self.client.post("/api/addCompany",headers={"authorization": "Token " + self.token}, json={"name":company_name})
-        '''
+    @task
+    def getCompanies(self):
+        print(self.token)
+        self.client.get("/api/companies",headers={"authorization": "Token " + self.token})
+        
 class WebsiteActiveUser(HttpUser):
     weight = 2
-    wait_time = between(0.2, 0.5)
+    #wait_time = between(0.2, 0.5)
+    wait_time = constant(time)
     token = ''
     
     def on_start(self):
@@ -179,7 +177,7 @@ class WebsiteActiveUser(HttpUser):
         except (ValueError, KeyError):
             # Jeśli nie można uzyskać request_id z odpowiedzi, użyj tymczasowego lub domyślnego
             id = 'unknown'
-        local_tz = pytz.timezone('Europe/Warsaw')
+        local_tz = pytz.timezone('UTC')
         timestamp = datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S')
 
         # Zapisanie danych do modelu TrafficLog
@@ -188,40 +186,4 @@ class WebsiteActiveUser(HttpUser):
             (timestamp, id, response_time / 1000.0)  # Konwersja na sekundy
         )
         conn.commit()  # Zatwierdzenie transakcji
-
-def log_cpu_usage():
-    time.sleep(60)
-    id = os.getenv('ENV_ID')
-    while True:
-        local_tz = pytz.timezone('Europe/Warsaw')
-        timestamp = datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S')
-        cpu_usage = psutil.cpu_percent(interval=1)
-        memory_usage = psutil.virtual_memory().percent
-
-        sql_insert = """
-        INSERT INTO "stockApp_cpu" (timestamp, cpu_usage, memory_usage,contener_id)
-        VALUES (%s, %s, %s,%s)
-        """
-
-        # Wykonanie zapytania
-        cursor.execute(sql_insert, (timestamp, cpu_usage, memory_usage,id))
-
-        # Zatwierdzenie transakcji
-        conn.commit()
-
-        time.sleep(5)  # Zapisuj dane co 5 sekund
-
-# Uruchomienie wątku do zbierania danych o CPU
-#threading.Thread(target=log_cpu_usage, daemon=True).start()
-
-def log_traffic_log(time):
-    request_id = str(uuid.uuid4())  # Unikalne ID dla żądania
-    local_tz = pytz.timezone('Europe/Warsaw')
-    timestamp = datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S')
-    # Zapisanie danych do modelu TrafficLog
-    cursor.execute(
-            """INSERT INTO "stockApp_trafficlog" (timestamp, request_id, api_time) VALUES (%s, %s, %s)""",
-            (timestamp, request_id, time / 1000.0)  # Konwersja na sekundy
-    )
-    conn.commit()  # Zatwierdzenie transakcji
     
