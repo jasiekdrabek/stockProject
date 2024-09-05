@@ -4,7 +4,6 @@ import math
 import time
 from celery import shared_task, group
 from .models import BuyOffer, SellOffer, BalanceUpdate,Transaction, Company, Stock, StockRate, TradeLog
-from django.utils import timezone
 from django.db import transaction
 import logging
 
@@ -171,7 +170,7 @@ def update_stock_rates():
             StockRate.objects.create(
                 company_id=company_id,
                 rate=updated_rate,
-                date_inc=timezone.now()
+                date_inc=datetime.datetime.now()
             )
 
 @shared_task
@@ -190,7 +189,7 @@ def process_balance_updates():
 
 @shared_task
 def expire_offers():
-    now = timezone.now()
+    now = datetime.datetime.now()
 
     # Znajdowanie i aktualizowanie przeterminowanych ofert kupna
     expired_buy_offers = BuyOffer.objects.filter(actual=True, dateLimit__lt=now)
