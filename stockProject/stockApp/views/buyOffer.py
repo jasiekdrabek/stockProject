@@ -10,14 +10,11 @@ import uuid
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def addBuyOffer(request):
-    serializer = BuyOfferSerializer(data=request.data, context={'request': request})  # Przekazywanie danych do serializera
+    serializer = BuyOfferSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         serializer.save()
-        data = serializer.data
-        response_data = dict(data)
-        response_data['request_id'] = str(uuid.uuid4())
-        return Response(response_data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  # Zwracanie błędów walidacji
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
