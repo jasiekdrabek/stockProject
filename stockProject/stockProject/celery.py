@@ -20,8 +20,8 @@ def debug_task(self):
 app.conf.beat_schedule = {
     'schedule_transactions': {
         'task': 'stockApp.tasks.schedule_transactions',
-        'schedule': float(os.getenv("TRANSACTION_TIME")),  # co 30 s
-        'options': {'queue': 'transactions'},  # Przypisanie kolejki
+        'schedule': float(os.getenv("TRANSACTION_TIME")),
+        'options': {'queue': 'transactions'}, 
     },
     'update_balance':{
         'task': 'stockApp.tasks.process_balance_updates',
