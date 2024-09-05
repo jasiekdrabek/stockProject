@@ -28,5 +28,4 @@ class LogRequestMiddleware(MiddlewareMixin):
                     request_id=id,
                     timestamp = datetime.datetime.now()
                 )
-
         return response
