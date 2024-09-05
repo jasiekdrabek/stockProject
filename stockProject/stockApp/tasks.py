@@ -105,13 +105,9 @@ def execute_transactions(company_ids):
                                 continue
         if number_of_sell_offers == 0 and number_of_buy_offers == 0:
             return company_ids               
-        # Pomiar końcowy czasu aplikacji
         end_time = time.time()
-
-        # Obliczenie czasu aplikacji i czasu bazy danych
         application_time = end_time - start_time
 
-            # Zapis do modelu TradeLog
         TradeLog.objects.using('test').create(
             application_time=application_time,
             database_time=database_time,
