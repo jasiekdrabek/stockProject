@@ -56,15 +56,15 @@ class WebsiteReadOnlyUser(FastHttpUser):
     
     def on_start(self):
         login = generate_random_data()
-        self.client.post("/api/signUp", json=login)
+        self.client.post("/api/auth/signUp", json=login)
         data = {
             'username': login['username'],
             'password': login['password']
         }
-        response = self.client.post("/api/signIn",json=data)
+        response = self.client.post("/api/auth/signIn",json=data)
         self.token = response.json()['token']
         company_name = fake.company()
-        self.client.post("/api/addCompany",headers={"authorization": "Token " + self.token}, json={"name":company_name})
+        self.client.post("/api/company/addCompany",headers={"authorization": "Token " + self.token}, json={"name":company_name})
         all_locusts_spawned.wait()
 
     @task
