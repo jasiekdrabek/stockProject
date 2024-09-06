@@ -12,9 +12,6 @@ time=float(os.getenv("TIME_BETWEEN_REQUESTS"))
 all_locusts_spawned = Semaphore()
 all_locusts_spawned.acquire()
 
-def on_hatch_complete(**kw):
-    all_locusts_spawned.release()
-
 @events.spawning_complete.add_listener
 def on_hatch_complete(**kw):
     all_locusts_spawned.release()
@@ -70,13 +67,13 @@ class WebsiteReadOnlyUser(FastHttpUser):
         self.client.post("/api/addCompany",headers={"authorization": "Token " + self.token}, json={"name":company_name})
         all_locusts_spawned.wait()
 
-    @task()
-    def wait(self):
-        pass
-    
     @task
     def getSellOffers(self):
         self.client.get("/api/user/sellOffers", headers={"authorization": "Token " + self.token})
+        
+    @task()
+    def wait(self):
+        pass
         
     @task
     def getBuyOffers(self):
@@ -88,7 +85,6 @@ class WebsiteReadOnlyUser(FastHttpUser):
         
     @task
     def getCompanies(self):
-        print(self.token)
         self.client.get("/api/companies",headers={"authorization": "Token " + self.token})
         
 class WebsiteActiveUser(HttpUser):
