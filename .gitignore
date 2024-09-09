@@ -3,3 +3,10 @@ debug.log
 *.sql
 stockProject/testData
 stockProject/testCharts
+.vscode
+/test
+.bak
+.dir
+.pyc
+.dat
+/stockProject/static
