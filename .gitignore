@@ -5,8 +5,8 @@ stockProject/testData
 stockProject/testCharts
 .vscode
 /test
-.bak
-.dir
-.pyc
-.dat
+*.bak
+*.dir
+*.pyc
+*.dat
 /stockProject/static
