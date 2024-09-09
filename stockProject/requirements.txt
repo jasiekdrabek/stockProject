@@ -12,3 +12,4 @@ pytz
 kombu
 requests
 docker
+drf-yasg

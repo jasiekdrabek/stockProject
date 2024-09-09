@@ -1,0 +1,10 @@
+10,1,1h,WebsiteActiveUser,20.0,0.5,4
+50,1,1h,WebsiteActiveUser,20.0,0.5,4
+100,1,1h,WebsiteActiveUser,20.0,0.5,4
+50,1,1h,WebsiteActiveUser,20.0,0.25,4
+50,1,1h,WebsiteActiveUser,20.0,0.75,4
+50,1,1h,WebsiteActiveUser,10.0,0.5,4
+50,1,1h,WebsiteActiveUser,30.0,0.5,4
+50,1,1h,WebsiteActiveUser,20.0,0.5,2
+50,1,1h,WebsiteActiveUser,20.0,0.5,6
+50,1,1h,WebsiteActiveUser WebsiteReadOnlyUser,20.0,0.5,4

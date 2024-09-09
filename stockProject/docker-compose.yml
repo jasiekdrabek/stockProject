@@ -55,7 +55,6 @@ services:
       - "8080:8080"
     depends_on:
       - db
-      - redis
       - db_test
     environment:
       ENV_ID: "web"
@@ -195,7 +194,11 @@ services:
       - gielda_network
     environment:
       ENV_ID: "locust"
+      LOCUST_USERS: 50
+      LOCUST_SPAWN_RATE: 1
       LOCUST_TIME: "10m"
+      LOCUST_CLASS: "WebsiteActiveUser"
+      TIME_BETWEEN_REQUESTS: 0.5
     depends_on:
       - web
       - db
