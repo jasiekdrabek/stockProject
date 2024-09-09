@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'django_celery_beat',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -88,6 +89,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'stock',
         'USER': 'postgres',
+        #'PASSWORD': 'admin',
         'PASSWORD': 'postgres',
         #'HOST': 'localhost',
         'HOST': 'db',  # Nazwa serwisu z pliku docker-compose.yml
@@ -97,9 +99,11 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'test_stock',
         'USER': 'postgres',
+        #'PASSWORD': 'admin',
         'PASSWORD': 'postgres',
         'HOST': 'db_test',
         'PORT': '5432',
+        #'HOST': 'localhost'
     }
 }
 
