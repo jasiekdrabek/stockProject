@@ -4,9 +4,9 @@
 sleep 60
 
 # Parametry testu
-USERS=${LOCUST_USERS:-100}  # Domyślnie 10 użytkowników, jeśli zmienna nie jest ustawiona
+USERS=${LOCUST_USERS:-30}  # Domyślnie 10 użytkowników, jeśli zmienna nie jest ustawiona
 SPAWN_RATE=${LOCUST_SPAWN_RATE:-1}  # Domyślna wartość dla ramp-up to 1 user/s
-TIME=${LOCUST_TIME:-30m}  # Domyślny host, jeśli zmienna nie jest ustawiona
+TIME=${LOCUST_TIME:-5m}  # Domyślny host, jeśli zmienna nie jest ustawiona
 LOCUST_CLASS=${LOCUST_CLASS:-WebsiteActiveUser}  # Domyślna klasa użytkownika
 
 # Uruchomienie Locust z podanymi parametrami
