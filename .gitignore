@@ -9,4 +9,5 @@ stockProject/testCharts
 *.dir
 *.pyc
 *.dat
+*.sh
 /stockProject/static
