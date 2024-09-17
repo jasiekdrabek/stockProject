@@ -188,8 +188,6 @@ services:
   locust:
     build: ../loadTestingApp  # ścieżka do nowego projektu
     command: /app/start_locust.sh
-    ports:
-      - "8089:8089"
     networks:
       - gielda_network
     environment:
