@@ -21,9 +21,6 @@ cursor = conn.cursor()
 client = docker.from_env()
 
 def calculate_cpu_percentage(stats):
-    """
-    Oblicza procentowe zużycie CPU na podstawie danych z Docker Stats.
-    """
     cpu_delta = stats['cpu_stats']['cpu_usage']['total_usage'] - stats['precpu_stats']['cpu_usage']['total_usage']
     system_delta = stats['cpu_stats']['system_cpu_usage'] - stats['precpu_stats']['system_cpu_usage']
     if system_delta > 0.0 and cpu_delta > 0.0:
@@ -32,32 +29,21 @@ def calculate_cpu_percentage(stats):
         cpu_percentage = 0.0
     return cpu_percentage
 
-def log_container_usage(container):
-    """
-    Loguje zużycie zasobów CPU i pamięci dla pojedynczego kontenera.
-    """
-    local_tz = pytz.timezone('Europe/Warsaw')
-    
+def log_container_usage(container):    
     while True:
-        timestamp = datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S')
-        # Pobranie informacji o zasobach
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         stats = container.stats(stream=False)
         cpu_percentage = calculate_cpu_percentage(stats)
-        memory_usage = stats['memory_stats']['usage'] / (1024 * 1024)  # MB
-
+        memory_usage = stats['memory_stats']['usage'] / (1024 * 1024)
         sql_insert = """
         INSERT INTO "stockApp_cpu" (timestamp, cpu_usage, memory_usage, contener_id)
         VALUES (%s, %s, %s, %s)
         """
         cursor.execute(sql_insert, (timestamp, cpu_percentage, memory_usage, container.name))
         conn.commit()
-
-        time.sleep(2)  # Zapisuj dane co 5 sekund
+        time.sleep(2)
 
 def log_resource_usage():
-    """
-    Uruchamia wątki logowania zasobów dla każdego kontenera.
-    """
     threads = []
     for container in client.containers.list():
         thread = threading.Thread(target=log_container_usage, args=(container,))
