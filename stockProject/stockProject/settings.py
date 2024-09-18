@@ -54,7 +54,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'stockApp.middleware.LogRequestMiddleware.LogRequestMiddleware',
-    'stockApp.middleware.DatabaseTimeMiddleware.DatabaseTimeMiddleware',
 ]
 
 ROOT_URLCONF = 'stockProject.urls'

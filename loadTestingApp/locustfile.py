@@ -198,7 +198,7 @@ class WebsiteActiveUserWtihMarketAnalize(FastHttpUser):
                 return
             if len(priceHistories) < self.numberOfRates:
                 continue
-            priceTrend = self.get_priceTrend(list(reversed(priceHistories)))
+            priceTrend = self.getPriceTrend(list(reversed(priceHistories)))
             if priceTrend == "nierosnący" and numberOfBuyOffers < self.limitNumerOfBuyOffersInOneTask:
                 numberOfBuyOffers += buyOffer(self, companyId, 3)            
             if priceTrend == "niemalejący" and numberOfSellOffers < self.limitNumerOfSellOffersInOneTask:
@@ -225,7 +225,7 @@ class WebsiteActiveUserWtihMarketAnalize(FastHttpUser):
             return
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         cursor.execute(
-            """INSERT INTO "stockApp_trafficlog" (timestamp, requestId, apiTime) VALUES (%s, %s, %s)""",
+            """INSERT INTO "stockApp_trafficlog" (timestamp, "requestid", "apiTime") VALUES (%s, %s, %s)""",
             (timestamp, id, response_time / 1000.0)
         )
         conn.commit()

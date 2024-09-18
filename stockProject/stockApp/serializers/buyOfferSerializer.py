@@ -7,13 +7,13 @@ class BuyOfferSerializer(serializers.ModelSerializer):
     class Meta:
         model = BuyOffer
         fields = ['company', 'startAmount', 'amount']
-    def create(self, validatedData):
+    def create(self, validated_data):
         request = self.context.get('request')
         user = request.user
-        amount = validatedData['amount']
-        company = validatedData['company']
+        amount = validated_data['amount']
+        company = validated_data['company']
         try:
-            latestStockRate = StockRate.objects.filter(company=company, actual=True).latest('date_inc')
+            latestStockRate = StockRate.objects.filter(company=company, actual=True).latest('dateInc')
             currentRate = latestStockRate.rate
         except StockRate.DoesNotExist:
             print("add offer stock error")
@@ -36,6 +36,6 @@ class BuyOfferSerializer(serializers.ModelSerializer):
             actual=True,
             maxPrice= calculatedPrice,
             dateLimit = dateLimit,
-            **validatedData
+            **validated_data
         )
         return buyOffer

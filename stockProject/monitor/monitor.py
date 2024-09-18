@@ -35,7 +35,7 @@ def logContainerUsage(container):
         cpuPercentage = calculateCpuPercentage(stats)
         memoryUsage = stats['memory_stats']['usage'] / (1024 * 1024)
         sqlInsert = """
-        INSERT INTO "stockApp_cpu" (timestamp, cpuUsage, memoryUsage, contenerId)
+        INSERT INTO "stockApp_cpu" (timestamp, "cpuUsage", "memoryUsage", "contenerId")
         VALUES (%s, %s, %s, %s)
         """
         cursor.execute(sqlInsert, (timestamp, cpuPercentage, memoryUsage, container.name))

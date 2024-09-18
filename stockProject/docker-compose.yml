@@ -179,7 +179,7 @@ services:
       LOCUST_USERS: 50
       LOCUST_SPAWN_RATE: 1
       LOCUST_TIME: "10m"
-      LOCUST_CLASS: "WebsiteActiveUser"
+      LOCUST_CLASS: "WebsiteActiveUser WebsiteActiveUserWtihMarketAnalize"
       TIME_BETWEEN_REQUESTS: 0.5
     depends_on:
       - web

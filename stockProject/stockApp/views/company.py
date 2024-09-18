@@ -25,7 +25,7 @@ def getCompaniesStockRates(request):
     companies = Company.objects.all()
     stockRates = []
     for company in companies:
-        companyStockRates = StockRate.objects.filter(company=company).order_by('-date_inc')[:numberOfRates]
+        companyStockRates = StockRate.objects.filter(company=company).order_by('-dateInc')[:numberOfRates]
         stockRates.extend(companyStockRates)
     serializer = StockRateSerializer(stockRates, many=True)
     data = serializer.data
@@ -40,12 +40,12 @@ def createCompany(request):
     if serializer.is_valid():
         name = serializer.validated_data.get('name')
         if Company.objects.filter(name=name).exists():
-            return Response({'error': 'Company with this name already exists.'}, status=status.HTTP_401_BAD_REQUEST)
+            return Response({'error': 'Company with this name already exists.'}, status=status.HTTP_400_BAD_REQUEST)
         company = serializer.save()
         stockRateData = {
             'actual': True,
             'rate': random.uniform(5.0, 100.0),
-            'date_inc': datetime.now(),
+            'dateInc': datetime.now(),
             'company': company.pk  # lub company.pk
         }
         stockRateSerializer = StockRateSerializer(data=stockRateData)

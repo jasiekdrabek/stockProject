@@ -18,8 +18,8 @@ def executeTransactions(companyIds):
         startTime = time.time()
         for companyId in companyIds:
             dbStartTime = time.time()
-            buyOffers = BuyOffer.objects.filter(companyId=companyId, actual=True).order_by('-maxPrice')
-            sellOffers = SellOffer.objects.filter(companyId=companyId, actual=True).order_by('minPrice')
+            buyOffers = BuyOffer.objects.filter(company_id=companyId, actual=True).order_by('-maxPrice')
+            sellOffers = SellOffer.objects.filter(company_id=companyId, actual=True).order_by('minPrice')
             dbEndTime = time.time()
             databaseTime += dbEndTime - dbStartTime
             numberOfBuyOffers += buyOffers.count()
@@ -77,7 +77,7 @@ def executeTransactions(companyIds):
                                     changeAmount=sellerMoneyAfterTransactionsChange,
                                     changeType='moneyAfterTransactions'
                                 )
-                                buyStock, created = Stock.objects.get_or_create(user=buyOffer.user, companyId=companyId)
+                                buyStock, created = Stock.objects.get_or_create(user=buyOffer.user, company_id=companyId)
                                 dbEndTime = time.time()
                                 databaseTime += dbEndTime - dbStartTime
                                 buyStock.amount += amountToTrade
@@ -117,22 +117,22 @@ def scheduleTransactions():
     numCompanies = companies.count()
     groupSize = 1 + numCompanies // max(1,math.ceil(math.sqrt(numCompanies)))
     companyGroups = [companies[i:i + groupSize] for i in range(0, numCompanies, groupSize)]    
-    tasks = group(execute_transactions.s([company.id for company in group]) for group in companyGroups)
+    tasks = group(executeTransactions.s([company.id for company in group]) for group in companyGroups)
     tasks.apply_async()
 
 @shared_task
-def updateRtockRates():
+def updateStockRates():
     companies = StockRate.objects.values_list('company', flat=True).distinct()    
     for companyId in companies:
-        buyOffers = BuyOffer.objects.filter(companyId=companyId, actual=True)
-        sellOffers = SellOffer.objects.filter(companyId=companyId, actual=True)        
+        buyOffers = BuyOffer.objects.filter(company_id=companyId, actual=True)
+        sellOffers = SellOffer.objects.filter(company_id=companyId, actual=True)        
         buyPrices = buyOffers.values_list('maxPrice', flat=True)
         sellPrices = sellOffers.values_list('minPrice', flat=True)        
         allPrices = list(buyPrices) + list(sellPrices)        
         if allPrices:
             newAverageRate = sum(allPrices) / len(allPrices)
             try:
-                lastStockRate = StockRate.objects.filter(companyId=companyId, actual=True).latest('date_inc')
+                lastStockRate = StockRate.objects.filter(company_id=companyId, actual=True).latest('dateInc')
                 lastRate = lastStockRate.rate
                 updatedRate = (lastRate + sum(allPrices)) / (len(allPrices) + 1)
                 lastStockRate.actual = False
@@ -141,9 +141,9 @@ def updateRtockRates():
                 updatedRate = newAverageRate
             
             StockRate.objects.create(
-                companyId=companyId,
+                company_id=companyId,
                 rate=updatedRate,
-                date_inc=datetime.datetime.now()
+                dateInc=datetime.datetime.now()
             )
 
 @shared_task
