@@ -204,7 +204,7 @@ class WebsiteActiveUserWtihMarketAnalize(FastHttpUser):
             if priceTrend == "niemalejący" and numberOfSellOffers < self.limitNumerOfSellOffersInOneTask:
                 numberOfSellOffers += sellOffer(self, 3, companyId=companyId)
 
-    def get_priceTrend(self, priceHistory):
+    def getPriceTrend(self, priceHistory):
         isNiemalejący = all(x <= y for x, y in zip(priceHistory, priceHistory[1:]))
         isNierosnący = all(x >= y for x, y in zip(priceHistory, priceHistory[1:]))
         if isNiemalejący:
@@ -215,7 +215,7 @@ class WebsiteActiveUserWtihMarketAnalize(FastHttpUser):
             return None
            
     @events.request.add_listener
-    def log_request(request_type, name, response_time, response_length, response, context, exception, **kwargs):
+    def logRequest(request_type, name, response_time, response_length, response, context, exception, **kwargs):
         try:
             if isinstance(response.json(), list):
                 id = response.json()[-1]["request_id"]
