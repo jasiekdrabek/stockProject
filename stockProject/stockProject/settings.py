@@ -179,10 +179,10 @@ CELERY_QUEUES = (
 )
 
 CELERY_ROUTES = {
-    'stockApp.tasks.schedule_transactions': {'queue': 'transactions'},
-    'stockApp.tasks.process_balance_updates': {'queue': 'balance_updates'},
-    'stockApp.tasks.update_stock_rates': {'queue': 'stock_rates'},
-    'stockApp.tasks.expire_offers': {'queue': 'expire_offers'},
+    'stockApp.tasks.scheduleTransactions': {'queue': 'transactions'},
+    'stockApp.tasks.processBalanceUpdates': {'queue': 'balance_updates'},
+    'stockApp.tasks.updateRtockRates': {'queue': 'stock_rates'},
+    'stockApp.tasks.expireOffers': {'queue': 'expire_offers'},
 }
 
 

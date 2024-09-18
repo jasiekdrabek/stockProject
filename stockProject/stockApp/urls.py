@@ -16,5 +16,6 @@ urlpatterns = [
     path('api/user/stocks', views.getUserStocks, name='getUserStocks'),
     path('api/user', views.getUserInfo, name='getUserInfo'),
     path('api/deleteDb', views.deleteAllDb, name='deleteDb'),
-    path('api/usersMoneyCheck', views.getUsersMoneyCheck, name='getUsersMoneyCheck')
+    path('api/usersMoneyCheck', views.getUsersMoneyCheck, name='getUsersMoneyCheck'),
+    path('api/getCompaniesStockRates', views.getCompaniesStockRates, name ='getCompaniesStockRates'),
 ]

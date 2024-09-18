@@ -11,14 +11,6 @@ services:
       - "6543:5432"
     networks:
       - gielda_network
-    deploy:
-      resources:
-        limits:
-          cpus: "4.0"
-          memory: "2g"
-        reservations:
-          cpus: "2.0"
-          memory: "1g"
 
   redis:
     image: redis:latest
@@ -61,14 +53,6 @@ services:
       TRANSACTION_TIME: "15.0"
     networks:
       - gielda_network
-    deploy:
-      resources:
-        limits:
-          cpus: "4.0"
-          memory: "2g"
-        reservations:
-          cpus: "2.0"
-          memory: "1g"
   
   celery_worker_schedule_transactions:
     build: .

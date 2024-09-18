@@ -7,5 +7,5 @@ class Transaction(models.Model):
     sellOffer = models.ForeignKey(SellOffer, on_delete=models.CASCADE)
     amount = models.IntegerField()
     price = models.FloatField()
-    total_price = models.FloatField()
+    totalPrice = models.FloatField()
     transacionDate = models.DateTimeField(auto_now_add=True)

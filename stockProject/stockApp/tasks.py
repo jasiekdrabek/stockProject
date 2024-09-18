@@ -10,199 +10,172 @@ import logging
 logger = logging.getLogger(__name__)
 
 @shared_task
-def execute_transactions(company_ids):
+def executeTransactions(companyIds):
     try:
-        database_time = 0
-        number_of_sell_offers = 0
-        number_of_buy_offers = 0
-        start_time = time.time()
-        for company_id in company_ids:
-            db_start_time = time.time()
-            buy_offers = BuyOffer.objects.filter(company_id=company_id, actual=True).order_by('-maxPrice')
-            sell_offers = SellOffer.objects.filter(company_id=company_id, actual=True).order_by('minPrice')
-            db_end_time = time.time()
-            database_time += db_end_time - db_start_time
-            number_of_buy_offers += buy_offers.count()
-            number_of_sell_offers += sell_offers.count()
-            if number_of_sell_offers == 0 and number_of_buy_offers == 0:
+        databaseTime = 0
+        numberOfSellOffers = 0
+        numberOfBuyOffers = 0
+        startTime = time.time()
+        for companyId in companyIds:
+            dbStartTime = time.time()
+            buyOffers = BuyOffer.objects.filter(companyId=companyId, actual=True).order_by('-maxPrice')
+            sellOffers = SellOffer.objects.filter(companyId=companyId, actual=True).order_by('minPrice')
+            dbEndTime = time.time()
+            databaseTime += dbEndTime - dbStartTime
+            numberOfBuyOffers += buyOffers.count()
+            numberOfSellOffers += sellOffers.count()
+            if numberOfSellOffers == 0 and numberOfBuyOffers == 0:
                 continue
-            for buy_offer in buy_offers:
-                for sell_offer in sell_offers:
-                    buyer = buy_offer.user
-                    seller = sell_offer.user
-                    if (buy_offer.company == sell_offer.company and
-                        buy_offer.amount > 0 and 
-                        sell_offer.amount > 0 and 
-                        buy_offer.maxPrice >= sell_offer.minPrice and
+            for buyOffer in buyOffers:
+                for sellOffer in sellOffers:
+                    buyer = buyOffer.user
+                    seller = sellOffer.user
+                    if (buyOffer.company == sellOffer.company and
+                        buyOffer.amount > 0 and 
+                        sellOffer.amount > 0 and 
+                        buyOffer.maxPrice >= sellOffer.minPrice and
                         seller != buyer):
-                        amount_to_trade = min(buy_offer.amount, sell_offer.amount)
-                        price = (buy_offer.maxPrice + sell_offer.minPrice) /2
-                        total_price = round(amount_to_trade * price,2)
+                        amountToTrade = min(buyOffer.amount, sellOffer.amount)
+                        price = (buyOffer.maxPrice + sellOffer.minPrice) /2
+                        totalPrice = round(amountToTrade * price,2)
                         with transaction.atomic():
-                            if buyer.money >= total_price:
-                                buy_offer.amount -= amount_to_trade
-                                sell_offer.amount -= amount_to_trade
+                            if buyer.money >= totalPrice:
+                                buyOffer.amount -= amountToTrade
+                                sellOffer.amount -= amountToTrade
 
-                                if buy_offer.amount == 0:
-                                    buy_offer.actual = False
-                                if sell_offer.amount == 0:
-                                    sell_offer.actual = False
-                                db_start_time = time.time()    
-                                buy_offer.save()
-                                sell_offer.save()
-                                db_end_time = time.time()
-                                database_time += db_end_time - db_start_time
-
-                                # Aktualizacja pieniędzy dla kupującego i sprzedającego
-                                 # Oblicz zmiany w saldzie
-                                buyer_money_change = -total_price
-                                buyer_money_after_transactions_change = -(total_price - amount_to_trade * buy_offer.maxPrice)
-                                seller_money_change = total_price
-                                seller_money_after_transactions_change = total_price
-
-                                # Tworzenie wpisu BalanceUpdate dla kupującego
-                                db_start_time = time.time() 
+                                if buyOffer.amount == 0:
+                                    buyOffer.actual = False
+                                if sellOffer.amount == 0:
+                                    sellOffer.actual = False
+                                dbStartTime = time.time()    
+                                buyOffer.save()
+                                sellOffer.save()
+                                dbEndTime = time.time()
+                                databaseTime += dbEndTime - dbStartTime
+                                buyerMoneyChange = -totalPrice
+                                buyerMoneyAfterTransactionsChange = -(totalPrice - round(amountToTrade * buyOffer.maxPrice,2))
+                                sellerMoneyChange = totalPrice
+                                sellerMoneyAfterTransactionsChange = totalPrice
+                                dbStartTime = time.time() 
                                 BalanceUpdate.objects.create(
                                     user=buyer,
-                                    change_amount=buyer_money_change,
-                                    change_type='money'
+                                    changeAmount=buyerMoneyChange,
+                                    changeType='money'
                                 )
                                 BalanceUpdate.objects.create(
                                     user=buyer,
-                                    change_amount=buyer_money_after_transactions_change,
-                                    change_type='moneyAfterTransactions'
-                                )
-
-                                # Tworzenie wpisu BalanceUpdate dla sprzedającego
-                                BalanceUpdate.objects.create(
-                                    user=seller,
-                                    change_amount=seller_money_change,
-                                    change_type='money'
+                                    changeAmount=buyerMoneyAfterTransactionsChange,
+                                    changeType='moneyAfterTransactions'
                                 )
                                 BalanceUpdate.objects.create(
                                     user=seller,
-                                    change_amount=seller_money_after_transactions_change,
-                                    change_type='moneyAfterTransactions'
+                                    changeAmount=sellerMoneyChange,
+                                    changeType='money'
                                 )
-
-                                # Aktualizacja akcji kupującego; sprzedający ma zabrane w momencie tworzenia oferty, aby nie mógł utworzyć nieskończenie wiele ofert.
-                                buy_stock, created = Stock.objects.get_or_create(user=buy_offer.user, company_id=company_id)
-                                db_end_time = time.time()
-                                database_time += db_end_time - db_start_time
-                                buy_stock.amount += amount_to_trade
-                                db_start_time = time.time() 
-                                buy_stock.save()
+                                BalanceUpdate.objects.create(
+                                    user=seller,
+                                    changeAmount=sellerMoneyAfterTransactionsChange,
+                                    changeType='moneyAfterTransactions'
+                                )
+                                buyStock, created = Stock.objects.get_or_create(user=buyOffer.user, companyId=companyId)
+                                dbEndTime = time.time()
+                                databaseTime += dbEndTime - dbStartTime
+                                buyStock.amount += amountToTrade
+                                dbStartTime = time.time() 
+                                buyStock.save()
                                 Transaction.objects.create(
-                                    buyOffer=buy_offer,
-                                    sellOffer=sell_offer,
-                                    amount=amount_to_trade,
+                                    buyOffer=buyOffer,
+                                    sellOffer=sellOffer,
+                                    amount=amountToTrade,
                                     price=price,
-                                    total_price=total_price
+                                    totalPrice=totalPrice
                                 )
-                                db_end_time = time.time()
-                                database_time += db_end_time - db_start_time
+                                dbEndTime = time.time()
+                                databaseTime += dbEndTime - dbStartTime
                             else:
                                 continue
-        if number_of_sell_offers == 0 and number_of_buy_offers == 0:
-            return company_ids               
-        end_time = time.time()
-        application_time = end_time - start_time
-
+        if numberOfSellOffers == 0 or numberOfBuyOffers == 0:
+            return companyIds               
+        endTime = time.time()
+        applicationTime = endTime - startTime
         TradeLog.objects.using('test').create(
-            application_time=application_time,
-            database_time=database_time,
-            number_of_sell_offers=number_of_sell_offers,
-            number_of_buy_offers=number_of_buy_offers,
+            applicationTime=applicationTime,
+            databaseTime=databaseTime,
+            numberOfSellOffers=numberOfSellOffers,
+            numberOfBuyOffers=numberOfBuyOffers,
             timestamp = datetime.datetime.now(),
-            company_ids = company_ids
+            companyIds = companyIds
             )                            
-        return company_ids
+        return companyIds
     except Exception as e:
         logger.error(f"Error executing transactions: {e}")
         raise e
 
 @shared_task
-def schedule_transactions():
+def scheduleTransactions():
     companies = Company.objects.all()
-    num_companies = companies.count()
-    group_size = 1 + num_companies // max(1,math.ceil(math.sqrt(num_companies)))  # Assuming you want 4 groups, adjust as needed
-
-    company_groups = [companies[i:i + group_size] for i in range(0, num_companies, group_size)]
-
-    
-    tasks = group(execute_transactions.s([company.id for company in group]) for group in company_groups)
+    numCompanies = companies.count()
+    groupSize = 1 + numCompanies // max(1,math.ceil(math.sqrt(numCompanies)))
+    companyGroups = [companies[i:i + groupSize] for i in range(0, numCompanies, groupSize)]    
+    tasks = group(execute_transactions.s([company.id for company in group]) for group in companyGroups)
     tasks.apply_async()
 
 @shared_task
-def update_stock_rates():
-    companies = StockRate.objects.values_list('company', flat=True).distinct()
-    
-    for company_id in companies:
-        # Obliczanie średniej ceny z ofert kupna i sprzedaży
-        buy_offers = BuyOffer.objects.filter(company_id=company_id, actual=True)
-        sell_offers = SellOffer.objects.filter(company_id=company_id, actual=True)
-        
-        buy_prices = buy_offers.values_list('maxPrice', flat=True)
-        sell_prices = sell_offers.values_list('minPrice', flat=True)
-        
-        all_prices = list(buy_prices) + list(sell_prices)
-        
-        if all_prices:
-            new_average_rate = sum(all_prices) / len(all_prices)
-            
-            # Pobierz ostatni `StockRate` dla danej firmy
+def updateRtockRates():
+    companies = StockRate.objects.values_list('company', flat=True).distinct()    
+    for companyId in companies:
+        buyOffers = BuyOffer.objects.filter(companyId=companyId, actual=True)
+        sellOffers = SellOffer.objects.filter(companyId=companyId, actual=True)        
+        buyPrices = buyOffers.values_list('maxPrice', flat=True)
+        sellPrices = sellOffers.values_list('minPrice', flat=True)        
+        allPrices = list(buyPrices) + list(sellPrices)        
+        if allPrices:
+            newAverageRate = sum(allPrices) / len(allPrices)
             try:
-                last_stock_rate = StockRate.objects.filter(company_id=company_id, actual=True).latest('date_inc')
-                last_rate = last_stock_rate.rate
-                # Oblicz średnią z ostatniego rate'u i nowej średniej
-                updated_rate = (last_rate + sum(all_prices)) / (len(all_prices) + 1)
-                last_stock_rate.actual = False
-                last_stock_rate.save()
+                lastStockRate = StockRate.objects.filter(companyId=companyId, actual=True).latest('date_inc')
+                lastRate = lastStockRate.rate
+                updatedRate = (lastRate + sum(allPrices)) / (len(allPrices) + 1)
+                lastStockRate.actual = False
+                lastStockRate.save()
             except StockRate.DoesNotExist:
-                # Jeśli nie ma ostatniego rate'u, ustaw nową średnią jako aktualną wartość
-                updated_rate = new_average_rate
+                updatedRate = newAverageRate
             
-            # Utwórz nowy `StockRate`
             StockRate.objects.create(
-                company_id=company_id,
-                rate=updated_rate,
+                companyId=companyId,
+                rate=updatedRate,
                 date_inc=datetime.datetime.now()
             )
 
 @shared_task
-def process_balance_updates():
-    updates = BalanceUpdate.objects.all()
-    
+def processBalanceUpdates():
+    updates = BalanceUpdate.objects.all()    
     with transaction.atomic():
         for update in updates:
             user = update.user
-            if update.change_type == 'money':
-                user.money += update.change_amount
-            elif update.change_type == 'moneyAfterTransactions':
-                user.moneyAfterTransations += update.change_amount
+            if update.changeType == 'money':
+                user.money += update.changeAmount
+            elif update.changeType == 'moneyAfterTransactions':
+                user.moneyAfterTransations += update.changeAmount
             user.save()
         BalanceUpdate.objects.filter(id__in=[update.id for update in updates]).delete()
 
 @shared_task
-def expire_offers():
+def expireOffers():
     now = datetime.datetime.now()
-
-    # Znajdowanie i aktualizowanie przeterminowanych ofert kupna
-    expired_buy_offers = BuyOffer.objects.filter(actual=True, dateLimit__lt=now)
-    for offer in expired_buy_offers:
+    expiredBuyOffers = BuyOffer.objects.filter(actual=True, dateLimit__lt=now)
+    for offer in expiredBuyOffers:
         buyer = offer.user
-        buyer_money_after_transactions_change = offer.amount * offer.maxPrice
+        buyerMoneyAfterTransactionsChange = round(offer.amount * offer.maxPrice,2)
         BalanceUpdate.objects.create(
                                     user=buyer,
-                                    change_amount=buyer_money_after_transactions_change,
-                                    change_type='moneyAfterTransactions'
+                                    changeAmount=buyerMoneyAfterTransactionsChange,
+                                    changeType='moneyAfterTransactions'
                                 )
         offer.actual = False
         offer.save()
 
-    # Znajdowanie i aktualizowanie przeterminowanych ofert sprzedaży
-    expired_sell_offers = SellOffer.objects.filter(actual=True, dateLimit__lt=now)
-    for offer in expired_sell_offers:
+    expiredSellOffers = SellOffer.objects.filter(actual=True, dateLimit__lt=now)
+    for offer in expiredSellOffers:
         seller = offer.user
         stock = Stock.objects.get(user=seller, company=offer.company)
         stock.amount += offer.amount

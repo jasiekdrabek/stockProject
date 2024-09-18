@@ -218,14 +218,14 @@ class WebsiteActiveUserWtihMarketAnalize(FastHttpUser):
     def logRequest(request_type, name, response_time, response_length, response, context, exception, **kwargs):
         try:
             if isinstance(response.json(), list):
-                id = response.json()[-1]["request_id"]
+                id = response.json()[-1]["requestId"]
             else:
-                id = response.json()['request_id']
+                id = response.json()['requestId']
         except (ValueError, KeyError):
             return
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         cursor.execute(
-            """INSERT INTO "stockApp_trafficlog" (timestamp, request_id, api_time) VALUES (%s, %s, %s)""",
+            """INSERT INTO "stockApp_trafficlog" (timestamp, requestId, apiTime) VALUES (%s, %s, %s)""",
             (timestamp, id, response_time / 1000.0)
         )
         conn.commit()

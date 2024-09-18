@@ -8,9 +8,9 @@ class MarketLog(models.Model):
         DELETE = 'DELETE', 'DELETE'
 
     timestamp = models.DateTimeField(auto_now_add=True)
-    api_method = models.CharField(max_length=10, choices=ApiMethod.choices)
-    application_time = models.FloatField()
-    database_time = models.FloatField()
-    endpoint_url = models.URLField()
-    request_id = models.CharField(max_length=255)
+    apiMethod = models.CharField(max_length=10, choices=ApiMethod.choices)
+    applicationTime = models.FloatField()
+    databaseTime = models.FloatField()
+    endpointUrl = models.URLField()
+    requestId = models.CharField(max_length=255)
 

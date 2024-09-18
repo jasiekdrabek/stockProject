@@ -6,9 +6,9 @@ class CompanySerializer(serializers.ModelSerializer):
         model = Company
         fields = '__all__'
 
-        def create(self, validated_data):
+        def create(self, validatedData):
             company = Company(
-                name = validated_data['name'],
+                name = validatedData['name'],
                 )
             company.save()
             return company

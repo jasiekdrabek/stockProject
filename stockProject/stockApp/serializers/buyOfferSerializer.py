@@ -7,48 +7,35 @@ class BuyOfferSerializer(serializers.ModelSerializer):
     class Meta:
         model = BuyOffer
         fields = ['company', 'startAmount', 'amount']
-        # Usuwamy pole 'user', 'actual', 'dateLimit' i 'maxPrice', bo będą dodawane automatycznie
-
-    def create(self, validated_data):
+    def create(self, validatedData):
         request = self.context.get('request')
         user = request.user
-        amount = validated_data['amount']
-        company = validated_data['company']
-       
-        # Pobierz najnowszą wartość akcji firmy
+        amount = validatedData['amount']
+        company = validatedData['company']
         try:
-            latest_stock_rate = StockRate.objects.filter(company=company, actual=True).latest('date_inc')
-            current_rate = latest_stock_rate.rate
+            latestStockRate = StockRate.objects.filter(company=company, actual=True).latest('date_inc')
+            currentRate = latestStockRate.rate
         except StockRate.DoesNotExist:
             print("add offer stock error")
             raise serializers.ValidationError("No stock rate available for the selected company.")
-
-        # Ustal cenę w zakresie od 95% do 110% wartości akcji
-        min_price = 0.95 * current_rate
-        max_price = 1.1 * current_rate
-        calculated_price = round(random.uniform(min_price, max_price), 2)
-
-        # Sprawdzanie, czy użytkownik ma wystarczającą ilość pieniędzy po uwzględnieniu transakcji
-        total_cost = calculated_price * amount
-        if user.moneyAfterTransations < total_cost:
+        minPrice = 0.95 * currentRate
+        maxPrice = 1.1 * currentRate
+        calculatedPrice = round(random.uniform(minPrice, maxPrice), 2)
+        totalCost = calculatedPrice * amount
+        if user.moneyAfterTransations < totalCost:
             print('buy offer money error')
             raise serializers.ValidationError("You do not have enough money to cover this transaction.")
-
-        # Aktualizacja pola moneyAfterTransations
         BalanceUpdate.objects.create(
             user = user,
-            change_amount = -total_cost,
-            change_type = 'moneyAfterTransactions',
+            changeAmount = -totalCost,
+            changeType = 'moneyAfterTransactions',
         )
-        # Ustawienie dateLimit na 3 minuty od teraz
-        date_limit = datetime.datetime.now() + datetime.timedelta(minutes=3)
-
-        # Tworzenie oferty kupna
-        buy_offer = BuyOffer.objects.create(
+        dateLimit = datetime.datetime.now() + datetime.timedelta(minutes=3)
+        buyOffer = BuyOffer.objects.create(
             user=request.user,
             actual=True,
-            maxPrice= calculated_price,
-            dateLimit = date_limit,
-            **validated_data
+            maxPrice= calculatedPrice,
+            dateLimit = dateLimit,
+            **validatedData
         )
-        return buy_offer
+        return buyOffer

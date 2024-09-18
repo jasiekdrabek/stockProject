@@ -17,6 +17,7 @@ NUM_TRADE=$7
 cat <<EOL > docker-compose.generated.yml
 services:
   db:
+    command: -c 'max_connections=2000'
     image: postgres:14
     environment:
       POSTGRES_DB: stock
@@ -28,15 +29,6 @@ services:
       - "6543:5432"
     networks:
       - gielda_network
-    deploy:
-      resources:
-        limits:
-          cpus: "4.0"
-          memory: "2g"
-        reservations:
-          cpus: "2.0"
-          memory: "1g"
-
   redis:
     image: redis:latest
     networks:
@@ -46,6 +38,7 @@ services:
 
   db_test:
     image: postgres:14
+    command: -c 'max_connections=2000'
     networks:
       - gielda_network
     environment:
@@ -79,14 +72,6 @@ services:
       TRANSACTION_TIME: "$TRANSACTION_TIME"
     networks:
       - gielda_network
-    deploy:
-      resources:
-        limits:
-          cpus: "4.0"
-          memory: "2g"
-        reservations:
-          cpus: "2.0"
-          memory: "1g"
   
   celery_worker_schedule_transactions:
     build: .
@@ -206,8 +191,6 @@ services:
   locust:
     build: ../loadTestingApp  # ścieżka do nowego projektu
     command: /app/start_locust.sh
-    ports:
-      - "8089:8089"
     networks:
       - gielda_network
     environment:

@@ -7,9 +7,6 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate
 import uuid
-# Create your views here.
-
-
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -23,8 +20,8 @@ def signUp(request):
         if CustomUser.objects.filter(email=email).exists():
             return Response({'error': 'User with this email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
         serializer.save()
-        request_id = str(uuid.uuid4())
-        return Response({'message': 'User created successfully.','request_id':request_id}, status=status.HTTP_201_CREATED)
+        requestId = str(uuid.uuid4())
+        return Response({'message': 'User created successfully.','requestId':requestId}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
@@ -39,7 +36,7 @@ def signIn(request):
     
     if user is not None:
         token, created = Token.objects.get_or_create(user=user)
-        request_id = str(uuid.uuid4())
-        return Response({'token': token.key, 'request_id':request_id}, status=status.HTTP_200_OK)
+        requestId = str(uuid.uuid4())
+        return Response({'token': token.key, 'requestId':requestId}, status=status.HTTP_200_OK)
     else:
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
