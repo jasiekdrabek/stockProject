@@ -9,8 +9,8 @@ fi
 LOCUST_USERS=$1
 LOCUST_SPAWN_RATE=$2
 LOCUST_TIME=$3
-LOCUST_CLASS=$4 #-WebsiteActiveUser
-TRANSACTION_TIME=$5 #"15.0"
+LOCUST_CLASS=$4
+TRANSACTION_TIME=$5
 TIME_BETWEEN_REQUESTS=$6
 NUM_TRADE=$7
 
@@ -115,7 +115,7 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
     volumes:
-      - ./monitor:/app  # Zakładając, że pliki monitorujące są w folderze "monitoring"
+      - ./monitor:/app
       - /var/run/docker.sock:/var/run/docker.sock  # Udostępnienie Docker sock
     depends_on:
       - db
@@ -216,11 +216,11 @@ EOL
 echo "Plik docker-compose.generated.yml został wygenerowany."
 
 # Uruchomienie kontenerów za pomocą docker-compose
-#docker-compose -f docker-compose.generated.yml up -d
+docker-compose -f docker-compose.generated.yml up -d
 
 # Sprawdzenie, czy kontenery zostały poprawnie uruchomione
-#if [ $? -eq 0 ]; then
-#    echo "Kontenery zostały pomyślnie uruchomione."
-#else
-#    echo "Wystąpił błąd podczas uruchamiania kontenerów."
-#fi
+if [ $? -eq 0 ]; then
+    echo "Kontenery zostały pomyślnie uruchomione."
+else
+    echo "Wystąpił błąd podczas uruchamiania kontenerów."
+fi

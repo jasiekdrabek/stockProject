@@ -26,8 +26,7 @@ while IFS= read -r params; do
 
   # Czekaj
   echo "Oczekiwanie"
-  #sleep 4200
-   sleep 1500
+  sleep 4200
 
   # Zatrzymanie kontenerów
   echo "Zatrzymuję kontenery..."
@@ -41,6 +40,7 @@ while IFS= read -r params; do
   counter=$((counter + 1))
 
   # Po zakończeniu iteracji dla tego zestawu parametrów
+  docker-compose -f docker-compose.generated.yml down -v
   echo "Zakończono przetwarzanie zestawu parametrów: $params"
 done < "$param_file"
 

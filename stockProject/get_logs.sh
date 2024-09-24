@@ -29,7 +29,7 @@ fi
 
 # Dump the database to a SQL file with a dynamic name
 echo "Dumping the logdatabase to a SQL file: $output_file"
-docker exec -t "$container_id" pg_dump -U postgres -d test_stock > "$output_file"
+docker exec -t "$container_id" pg_dump -U postgres -d test_stock -t '\"stockApp_cpu\"' -t '\"stockApp_tradelog\"' -t '\"stockApp_trafficlog\"' -t '\"stockApp_marketlog\"' > "$output_file"
 
 # Check if the dump was successful
 if [ $? -eq 0 ]; then
