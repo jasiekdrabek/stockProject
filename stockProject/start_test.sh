@@ -21,8 +21,11 @@ while IFS= read -r params; do
 
   echo "Uruchamiam Dockera z parametrami: $params"
 
-  # Uruchomienie Dockera za pomocą skryptu generate_docker-compose.sh z parametrami
-  ./generate_docker-compose.sh $params
+  # Rozdzielenie parametrów oddzielonych przecinkami
+  IFS=',' read -r -a param_array <<< "$params"
+
+  # Przekazanie parametrów do skryptu Docker (użycie cudzysłowów, aby zachować spacje w argumentach)
+  ./generate_docker-compose.sh "${param_array[@]}"
 
   # Czekaj
   echo "Oczekiwanie"
