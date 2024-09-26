@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 @shared_task
 def executeTransactions(companyIds):
     try:
+        databaseTime = 0
+        numberOfSellOffers = 0
+        numberOfBuyOffers = 0
         startTime = time.time()
         for companyId in companyIds:
             dbStartTime = time.time()
