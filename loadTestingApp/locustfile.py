@@ -3,12 +3,13 @@ import random
 import string
 import faker
 import psycopg2
-import pytz
 from datetime import datetime
 import os
 from gevent.lock import Semaphore
 
 timeBetweenRequests=float(os.getenv("TIME_BETWEEN_REQUESTS"))
+activeWeigth = int(os.getenv("ACTIVE_USER_WEIGHT"),2)
+activeWithAnalizeWeigth = int(os.getenv("ACTIVE_USER_WITH_ANALIZE_WEIGHT"),2)
 allLocustsSpawned = Semaphore()
 allLocustsSpawned.acquire()
 
@@ -216,6 +217,8 @@ class WebsiteActiveUserWtihMarketAnalize(FastHttpUser):
            
     @events.request.add_listener
     def logRequest(request_type, name, response_time, response_length, response, context, exception, **kwargs):
+        if exception:
+            return
         try:
             if isinstance(response.json(), list):
                 id = response.json()[-1]["requestId"]
