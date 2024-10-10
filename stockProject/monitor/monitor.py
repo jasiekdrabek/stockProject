@@ -30,7 +30,7 @@ def calculateCpuPercentage(stats):
 
 def logContainerUsage(container):    
     while True:
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        timestamp = datetime.now()
         stats = container.stats(stream=False)
         cpuPercentage = calculateCpuPercentage(stats)
         memoryUsage = stats['memory_stats']['usage'] / (1024 * 1024)
