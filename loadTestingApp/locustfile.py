@@ -8,8 +8,8 @@ import os
 from gevent.lock import Semaphore
 
 timeBetweenRequests=float(os.getenv("TIME_BETWEEN_REQUESTS"))
-activeWeigth = int(os.getenv("ACTIVE_USER_WEIGHT"),2)
-activeWithAnalizeWeigth = int(os.getenv("ACTIVE_USER_WITH_ANALIZE_WEIGHT"),2)
+activeWeigth = int(os.getenv("ACTIVE_USER_WEIGHT",2))
+activeWithAnalizeWeigth = int(os.getenv("ACTIVE_USER_WITH_ANALIZE_WEIGHT",2))
 allLocustsSpawned = Semaphore()
 allLocustsSpawned.acquire()
 
@@ -226,7 +226,7 @@ class WebsiteActiveUserWtihMarketAnalize(FastHttpUser):
                 id = response.json()['requestId']
         except (ValueError, KeyError):
             return
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        timestamp = datetime.now()
         cursor.execute(
             """INSERT INTO "stockApp_trafficlog" (timestamp, "requestid", "apiTime") VALUES (%s, %s, %s)""",
             (timestamp, id, response_time / 1000.0)
