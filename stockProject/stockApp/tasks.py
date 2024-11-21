@@ -24,7 +24,7 @@ def executeTransactions(companyIds):
             databaseTime += dbEndTime - dbStartTime
             numberOfBuyOffers += buyOffers.count()
             numberOfSellOffers += sellOffers.count()
-            if numberOfSellOffers == 0 and numberOfBuyOffers == 0:
+            if buyOffers.count()== 0 or sellOffers.count() == 0:
                 continue
             for buyOffer in buyOffers:
                 for sellOffer in sellOffers:
@@ -93,9 +93,7 @@ def executeTransactions(companyIds):
                                 dbEndTime = time.time()
                                 databaseTime += dbEndTime - dbStartTime
                             else:
-                                continue
-        if numberOfSellOffers == 0 or numberOfBuyOffers == 0:
-            return companyIds               
+                                continue               
         endTime = time.time()
         applicationTime = endTime - startTime
         TradeLog.objects.using('test').create(

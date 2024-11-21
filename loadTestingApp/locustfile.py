@@ -52,19 +52,19 @@ def generateValidPassword():
 
 def register(self):
     login = generateRandomData()
-    self.client.post("/api/signUp", json=login)
+    self.client.post("/api/signUp", json=login, context={"userClass": self.userClass})
     data = {
         'username': login['username'],
         'password': login['password']
     }
-    response = self.client.post("/api/signIn",json=data)
+    response = self.client.post("/api/signIn",json=data, context={"userClass": self.userClass})
     self.token = response.json()['token']
     companyName = fake.company()
-    self.client.post("/api/addCompany",headers={"authorization": "Token " + self.token}, json={"name":companyName})
+    self.client.post("/api/addCompany",headers={"authorization": "Token " + self.token}, json={"name":companyName}, context={"userClass": self.userClass})
     allLocustsSpawned.wait()    
 
 def buyOffer(self, companyId, maxAmount):
-    userInfoResponse = self.client.get("/api/user", headers={"authorization": "Token " + self.token})
+    userInfoResponse = self.client.get("/api/user", headers={"authorization": "Token " + self.token}, context={"userClass": self.userClass})
     userInfo = userInfoResponse.json()
     if userInfo['moneyAfterTransations'] < 1000:
         return 0
@@ -74,11 +74,11 @@ def buyOffer(self, companyId, maxAmount):
         "startAmount": amount,
         "amount": amount,
     }
-    self.client.post("/api/addBuyOffer", headers={"authorization": "Token " + self.token}, json=buyOfferData)
+    self.client.post("/api/addBuyOffer", headers={"authorization": "Token " + self.token}, json=buyOfferData, context={"userClass": self.userClass})
     return 1
     
 def sellOffer(self, maxAmount,companyId = None):
-    response = self.client.get("/api/user/stocks", headers={"authorization": "Token " + self.token})
+    response = self.client.get("/api/user/stocks", headers={"authorization": "Token " + self.token}, context={"userClass": self.userClass})
     userStocks = response.json()
     userStocks.pop()
     if not userStocks:
@@ -99,20 +99,21 @@ def sellOffer(self, maxAmount,companyId = None):
         "startAmount": amountToSell,
         "amount": amountToSell,
     }
-    self.client.post("/api/addSellOffer", headers={"authorization": "Token " + self.token}, json=sellOfferData)
+    self.client.post("/api/addSellOffer", headers={"authorization": "Token " + self.token}, json=sellOfferData, context={"userClass": self.userClass})
     return 1
     
 class WebsiteReadOnlyUser(FastHttpUser):
     weight = 1
     wait_time = constant(timeBetweenRequests)
     token = ''
+    userClass = 'WebsiteReadOnlyUser'
     
     def on_start(self):
         register(self)        
 
     @task
     def getSellOffers(self):
-        self.client.get("/api/user/sellOffers", headers={"authorization": "Token " + self.token})
+        self.client.get("/api/user/sellOffers", headers={"authorization": "Token " + self.token}, context={"userClass": self.userClass})
         
     @task()
     def wait(self):
@@ -120,20 +121,21 @@ class WebsiteReadOnlyUser(FastHttpUser):
         
     @task
     def getBuyOffers(self):
-        self.client.get("/api/user/buyOffers", headers={"authorization": "Token " + self.token})
+        self.client.get("/api/user/buyOffers", headers={"authorization": "Token " + self.token}, context={"userClass": self.userClass})
         
     @task
     def getStocks(self):
-        self.client.get("/api/user/stocks", headers={"authorization": "Token " + self.token})
+        self.client.get("/api/user/stocks", headers={"authorization": "Token " + self.token}, context={"userClass": self.userClass})
         
     @task
     def getCompanies(self):
-        self.client.get("/api/companies",headers={"authorization": "Token " + self.token})
+        self.client.get("/api/companies",headers={"authorization": "Token " + self.token}, context={"userClass": self.userClass})
         
 class WebsiteActiveUser(FastHttpUser):
     weight = 2
     wait_time = constant(timeBetweenRequests)
     token = ''
+    userClass = 'WebsiteActiveUser'
     
     def on_start(self):
         register(self)
@@ -148,7 +150,7 @@ class WebsiteActiveUser(FastHttpUser):
 
     @task
     def addBuyOffer(self):
-        response = self.client.get("/api/companies", headers={"authorization": "Token " + self.token})
+        response = self.client.get("/api/companies", headers={"authorization": "Token " + self.token}, context={"userClass": self.userClass})
         companies = response.json()    
         companies.pop()        
         if not companies:
@@ -164,6 +166,7 @@ class WebsiteActiveUserWtihMarketAnalize(FastHttpUser):
     token = ''
     limitNumerOfBuyOffersInOneTask = 2
     limitNumerOfSellOffersInOneTask = 3
+    userClass = 'WebsiteActiveUserWtihMarketAnalize'
     
     def on_start(self):
         register(self)
@@ -176,7 +179,7 @@ class WebsiteActiveUserWtihMarketAnalize(FastHttpUser):
     def checkOffers(self):
         numberOfBuyOffers = 0
         numberOfSellOffers = 0
-        response = self.client.get("/api/getCompaniesStockRates", headers={"authorization": "Token " + self.token}, json={'numberOfRates' : self.numberOfRates})
+        response = self.client.get("/api/getCompaniesStockRates", headers={"authorization": "Token " + self.token}, json={'numberOfRates' : self.numberOfRates}, context={"userClass": self.userClass})
         try:
             stockRates = response.json()
         except(ValueError, KeyError):
@@ -219,6 +222,10 @@ class WebsiteActiveUserWtihMarketAnalize(FastHttpUser):
     def logRequest(request_type, name, response_time, response_length, response, context, exception, **kwargs):
         if exception:
             return
+        if context:
+            userClass = context["userClass"]
+        else:
+            userClass = 'WebsiteActiveUser'
         try:
             if isinstance(response.json(), list):
                 id = response.json()[-1]["requestId"]
@@ -228,8 +235,8 @@ class WebsiteActiveUserWtihMarketAnalize(FastHttpUser):
             return
         timestamp = datetime.now()
         cursor.execute(
-            """INSERT INTO "stockApp_trafficlog" (timestamp, "requestid", "apiTime") VALUES (%s, %s, %s)""",
-            (timestamp, id, response_time / 1000.0)
+            """INSERT INTO "stockApp_trafficlog" (timestamp, "requestid", "apiTime","userClass") VALUES (%s, %s, %s,%s)""",
+            (timestamp, id, response_time / 1000.0,userClass)
         )
         conn.commit()
     
